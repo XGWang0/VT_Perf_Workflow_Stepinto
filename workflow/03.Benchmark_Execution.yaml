@@ -1,0 +1,19 @@
+workflow_name: "Benchmark Execution"
+workflow_steps:
+  - steps_name: "Unpack and prepare sleperf QA suite"
+    script_name: prepare_sleperf.sh
+    script_content: |
+      #!/bin/bash
+      # Step 3: Fetch and unpack sleperf Master
+      wget https://gitlab.suse.de/qa-testsuites/sleperf/-/archive/master/sleperf-master.tar
+      tar -xf sleperf-master.tar
+    script_instroduction: Pull and unpack virtualization benchmark master.
+  - steps_name: "Trigger cpucompute benchmark cases"
+    script_name: run_bench.sh
+    script_content: |
+      #!/bin/bash
+      # Step 3: Trigger benchmark run
+      cd sleperf-master/
+      ./sleperf --test cpucompute --runs 3
+      netperf -H vh018 -l 60 -t TCP_STREAM -- -m 1024
+    script_instroduction: Launch virtualization CPU and net benchmarks.

@@ -1,0 +1,373 @@
+[Common]
+# Please pay attention this variable when use different scheduler service
+msgqueue_base_url = "http://10.200.134.100:8889/api/msg_queue/v1/"
+
+[PACKAGES]
+pkgs_for_python = []
+pkgs_for_prepare = ["xfsprogs", "parted", "sshpass", "libvirt-client", "sysstat", "nfs-client", "procps", ]
+pattern_for_prepare = ["selinux"]
+# pkgs_for_sleperf is used to install scheduler service on SUT
+#pkgs_for_sleperf = "http://10.200.134.67/repo/sleperf.tar"
+pkgs_for_sleperf = "https://gitlab.suse.de/qa-testsuites/sleperf/-/archive/master/sleperf-master.tar"
+pkgs_for_perf = ["ntp", "wget", "bzip2", "bc", "netcat-openbsd", "screen", "sysstat", "cpupower", "numactl", "lsscsi", "pciutils", "smartmontools"]
+pattern_for_perf = []
+pkgs_for_netperf = ["qa_test_netperf"]
+
+[PACKAGES.pkgs_for_hypervisor]
+kvm = ["kvm_server", "kvm_tools"]
+xen = ["xen_server", "xen_tools"]
+
+[PRODUCT.qa_repo_map]
+sles-15-sp5 = 'http://dist.suse.de/ibs/QA:/Head/SLE-15-SP5/'
+sles-15-sp6 = 'http://mirror.suse.asia/ibs/QA:/Head/SLE-15-SP6/'
+sles-15-sp7 = 'http://mirror.suse.asia/ibs/QA:/Head/SLE-15-SP7/'
+sles-16 = 'http://mirror.suse.asia/ibs/QA:/Head/SLES-16.0/'
+"sles-16.1" = 'http://mirror.suse.asia/ibs/QA:/Head/SLES-16.1/'
+
+[PRODUCT.prd_url_map]
+sles-15-sp5 = 'http://download.suse.de/install/SLP/SLE-15-SP5-Full-LATEST/x86_64/DVD1/'
+sles-15-sp6 = 'http://mirror.suse.asia/install/SLP/SLE-15-SP6-Full-GM/x86_64/DVD1/'
+
+[PRODUCT.prd_url_map.sles-15-sp7]
+ZH = 'http://openqa.qa2.suse.asia/assets/repo/fixed/SLE-15-SP7-Full-x86_64-GM-Media1/'
+CZ = 'http://openqa.qa2.suse.asia/assets/repo/fixed/SLE-15-SP7-Full-x86_64-GM-Media1/'
+#sles-16 = 'http://10.200.129.6/assets/repo/SLES-16.0-x86_64-{build_ver}/'
+
+[PRODUCT.prd_url_map.sles-16.ZH]
+startup_repo = 'http://10.200.129.6/assets/repo/SLES-16.0-Full-x86_64-{build_ver}.install'
+install_iso = 'http://10.200.129.6/assets/iso/SLES-16.0-Full-x86_64-{build_ver}.install.iso'
+install_repo = 'http://10.200.129.6/assets/repo/SLES-16.0-x86_64-{build_ver}'
+
+[PRODUCT.prd_url_map.sles-16.CZ]
+startup_repo = 'http://10.145.10.207/assets/repo/SLES-16.0-Online-x86_64-{build_ver}.install/'
+install_iso = 'http://10.145.10.207/assets/iso/SLES-16.0-Online-x86_64-{build_ver}.install.iso'
+install_repo = 'http://10.145.10.207/assets/repo/SLES-16.0-x86_64-{build_ver}'
+
+[PRODUCT.prd_url_map."sles-16.1".ZH]
+startup_repo = 'http://10.200.129.6/assets/repo/SLES-16.1-Full-x86_64-{build_ver}.install'
+install_iso =  'http://10.200.129.6/assets/repo/SLES-16.1-Full-x86_64-{build_ver}.install/LiveOS/squashfs.img'
+install_repo = 'http://10.200.129.6/assets/repo/SLES-16.1-Full-x86_64-{build_ver}.install/install/'
+
+[PRODUCT.prd_url_map."sles-16.1".CZ]
+startup_repo = 'http://10.145.10.207/assets/repo/SLES-16.1-Online-x86_64-{build_ver}.install/'
+install_iso =  'http://10.145.10.207/assets/repo/SLES-16.1-Online-x86_64-{build_ver}.install/LiveOS/squashfs.img'
+install_repo = 'http://10.145.10.207/assets/repo/SLES-16.1-x86_64-{build_ver}/'
+
+[PRODUCT.prd_migration_url_map.sles-15-sp7]
+ZH = [
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-INSTALLER/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Basesystem/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Desktop-Applications/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Development-Tools/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Legacy/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Server-Applications/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Python3/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Web-Scripting/'
+]
+CZ = [
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-INSTALLER/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Basesystem/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Desktop-Applications/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Development-Tools/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Legacy/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Server-Applications/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Python3/',
+    'http://amazon.qa2.suse.asia/update/15-SP7/x86_64/SLE-Module-Web-Scripting/'
+]
+
+[PRODUCT.prd_migration_url_map.sles-16]
+ZH = [
+    'http://amazon.qa2.suse.asia/update/SLES-16.0-x86_64/?ssl_verify=no'
+]
+CZ = [
+    'http://amazon.qa2.suse.asia/update/SLES-16.0-x86_64/?ssl_verify=no'
+]
+
+
+[TEST]
+test_case_run_times = 3
+
+[TEST.test_case_monitor]
+diskio_on = [
+    '_monitor_iostat_vmstat_turbostat_pidstat_pages_memory_llc_on',
+    '_remote_{remote_ip}_monitor_xentop_iostat_vmstat_turbostat_pidstat_pages_memory_llc_on',
+]
+netio_on = [
+    '_monitor_pidstat_turbostat_ipv4_nfsiostat_nfsv3stat_nfsv4stat_llc_on',
+    '_remote_{remote_ip}_monitor_pidstat_turbostat_ipv4_nfsiostat_nfsv3stat_nfsv4stat_llc_on',
+]
+syscall_on = [
+    '_monitor_all_off',
+]
+cpucompute_on = [
+    '_monitor_all_off',
+]
+
+[TEST.test_cases_no_net]
+
+syscall = ['perf_syscall']
+
+diskio = [
+    'workload_database_postgre_smallMem_pgbench_read_xfs',
+    'workload_database_postgre_smallMem_pgbench_rw_xfs',
+    'workload_database_virt_postgre_largeMem_pgbench_read_xfs',
+    'workload_database_mariadb_sysbench_read_xfs',
+    'io_block_generic_fio_singlejob_fsync_xfs',
+    'io_block_generic_fio_singlejob_async_xfs',
+    'io_block_fio_direct_random_xfs',
+    'io_block_fio_direct_sequential_xfs',
+    'io_block_generic_fio_async_xfs',
+    'io_block_generic_fio_fsync_xfs',
+]
+
+cpucompute = [
+    'workload_NPB_BT_mpi',
+    'workload_NPB_BT_openmp',
+    'workload_NPB_CG_mpi',
+    'workload_NPB_CG_openmp',
+    'workload_NPB_EP_mpi',
+    'workload_NPB_EP_openmp',
+    'workload_NPB_FT_mpi',
+    'workload_NPB_FT_openmp',
+    'workload_NPB_IS_mpi',
+    'workload_NPB_IS_openmp',
+    'workload_NPB_LU_mpi',
+    'workload_NPB_LU_openmp',
+    'workload_NPB_MG_mpi',
+    'workload_NPB_MG_openmp',
+    'workload_NPB_SP_mpi',
+    'workload_NPB_SP_openmp',
+    'workload_NPB_UA_openmp',
+]
+
+[TEST.test_cases_net]
+netio = [
+    'network_socket_fiber_iperf3_tcp4_bind_node',
+    'network_socket_fiber_iperf3_udp4_bind_node',
+    'network_socket_fiber_netperf_tcp4_bind_node',
+    'network_socket_fiber_netperf_udp4_bind_node',
+]
+
+[TEST.test_cases_nfs.nfsv3]
+diskio = [
+    'workload_database_postgre_smallMem_pgbench_nfs_read_xfs',
+    'workload_database_postgre_smallMem_pgbench_nfs_rw_xfs',
+    'workload_database_mariadb_sysbench_nfs_read_xfs',
+    'workload_database_mariadb_sysbench_nfs_write_xfs',
+    'io_nfs_fio_singlejob_async_xfs',
+    'io_nfs_fio_singlejob_fsync_xfs',
+    'io_nfs_fio_random_async_xfs',
+    'io_nfs_fio_random_fsync_xfs',
+    'io_nfs_fio_async_xfs',
+    'io_nfs_fio_fsync_xfs',
+]
+
+[TEST.test_cases_nfs.nfsv4]
+diskio = [
+    'workload_database_postgre_smallMem_pgbench_nfsv4_read_xfs',
+    'workload_database_postgre_smallMem_pgbench_nfsv4_rw_xfs',
+    'workload_database_mariadb_sysbench_nfsv4_read_xfs',
+    'workload_database_mariadb_sysbench_nfsv4_write_xfs',
+    'io_nfsv4_fio_singlejob_async_xfs',
+    'io_nfsv4_fio_singlejob_fsync_xfs',
+    'io_nfsv4_fio_random_async_xfs',
+    'io_nfsv4_fio_random_fsync_xfs',
+    'io_nfsv4_fio_async_xfs',
+    'io_nfsv4_fio_fsync_xfs',
+]
+
+[PHYSICAL_MACHINE]
+username = 'root'
+password = 'nots3cr3t'
+diskio_test_fs = "xfs"
+
+[PHYSICAL_MACHINE.phy_machine_test_mac]
+ph045 = '0c:c4:7a:bd:5e:5c'
+ph047 = '00:1b:21:9b:2d:28'
+vh018 = '5c:6f:69:7e:06:90' # 10000Mb/s
+vh019 = 'e4:3d:1a:e9:88:30'  # 10000Mb/s
+ph051 = '0c:c4:7a:bd:5e:5c'
+1u-perf02 = '6c:b3:11:7b:a0:26'
+2u-perf02 = '6c:b3:11:7b:a0:20'
+
+# Host IP Addresses
+[PHYSICAL_MACHINE.phy_machine_ip_address]
+ph045 = '10.200.130.45'
+ph047 = '10.200.130.47'
+vh018 = '10.200.131.18'
+vh019 = '10.200.131.19'
+ph051 = '10.200.130.51'
+2u-perf02 = '10.146.4.162'
+1u-perf02 = '10.146.4.158'
+
+[VIRTUAL_MACHINE]
+username = 'root'
+password = 'nots3cr3t'
+bridge_name_for_net_test = 'nettest_br'
+affinity_vcpu_2vpcu_for_network = true
+diskio_test_fs = "xfs"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp2]
+vm = "http://10.200.129.4/assets/autoyast/SLES-15-SP2/KVM/SLES-15-SP2-KVM-AUTOYAST.xml"
+pv = "http://10.200.129.4/assets/autoyast/SLES-15-SP2/XEN/PV/SLES-15-SP2-PV-AUTOYAST.xml"
+hvm = "http://10.200.129.4/assets/autoyast/SLES-15-SP2/XEN/HVM/SLES-15-SP2-HVM-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp3]
+vm = "http://10.200.129.4/assets/autoyast/SLES-15-SP3/KVM/SLES-15-SP3-KVM-AUTOYAST.xml"
+pv = "http://10.200.129.4/assets/autoyast/SLES-15-SP3/XEN/PV/SLES-15-SP3-PV-AUTOYAST.xml"
+hvm = "http://10.200.129.4/assets/autoyast/SLES-15-SP3/XEN/HVM/SLES-15-SP3-HVM-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp4]
+vm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP4/KVM/SLES-15-SP4-KVM-AUTOYAST.xml"
+pv = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP4/XEN/PV/SLES-15-SP4-PV-AUTOYAST.xml"
+hvm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP4/XEN/HVM/SLES-15-SP4-HVM-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp5]
+vm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP5/KVM/SLES-15-SP5-KVM-ONLINE-AUTOYAST.xml"
+pv = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP5/XEN/PV/SLES-15-SP5-PV-ONLINE-AUTOYAST.xml"
+hvm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP5/XEN/HVM/SLES-15-SP5-HVM-ONLINE-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp6]
+vm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP6/KVM/SLES-15-SP6-KVM-ONLINE-AUTOYAST.xml"
+pv = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP6/XEN/PV/SLES-15-SP6-PV-ONLINE-AUTOYAST.xml"
+hvm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP6/XEN/HVM/SLES-15-SP6-HVM-ONLINE-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-15-sp7]
+vm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP7/KVM/SLES-15-SP7-KVM-ONLINE-AUTOYAST.xml"
+pv = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP7/XEN/PV/SLES-15-SP7-PV-ONLINE-AUTOYAST.xml"
+hvm = "http://openqa.qa2.suse.asia/assets/autoyast/SLES-15-SP7/XEN/HVM/SLES-15-SP7-HVM-ONLINE-AUTOYAST.xml"
+
+[VIRTUAL_MACHINE.autoyast_url.sles-16]
+vm = "http://10.200.129.6/assets/autoyast/vt_perf_openqa/guest_common_profile_sles16.0.jsonnet"
+pv = "http://10.200.129.6/assets/autoyast/vt_perf_openqa/guest_common_profile_sles16.0.jsonnet"
+hvm = "http://10.200.129.6/assets/autoyast/vt_perf_openqa/guest_common_profile_sles16.0.jsonnet"
+
+[VIRTUAL_MACHINE.autoyast_url."sles-16.1"]
+vm = "http://10.200.129.6/assets/autoyast/vt_perf_openqa/guest_common_profile_sles16.1.jsonnet"
+
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.basic]
+memory = 8192
+cpu = 8
+br_name = 'br0'
+machine = ''
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.install.previous_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=hvc0,115200'
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.install.current_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=hvc0,115200'
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[[VIRTUAL_MACHINE.vir_machine_cfg.pv.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_image_param = " -o extended_l2=on,cluster_size=2M "
+disk_cache = 'directsync'
+disk_qemu_cmd = ''
+disk_extra_cmd = '--disk path={disk_file_abs_path},format={disk_type},cache={disk_cache}'
+
+[[VIRTUAL_MACHINE.vir_machine_cfg.pv.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = ''
+
+# ----------------------------------------------------------------------
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.basic]
+memory = 8192
+cpu = 8
+br_name = 'br0'
+machine = ''
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+qemu_commandline = ''
+extra_parameter = ''
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.install.previous_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.install.current_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+# Array of tables for disks
+[[VIRTUAL_MACHINE.vir_machine_cfg.hvm.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_image_param = " -o extended_l2=on,cluster_size=2M "
+disk_cache = 'directsync'
+disk_qemu_cmd = ''
+disk_extra_cmd = '--disk path={disk_file_abs_path},format={disk_type},cache={disk_cache}'
+
+# Array of tables for nets
+[[VIRTUAL_MACHINE.vir_machine_cfg.hvm.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = ''
+
+# ----------------------------------------------------------------------
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.basic]
+cpu_mode = 'host-passthrough'
+memory = 8192
+br_name = 'br0'
+machine = 'q35'
+cpu = 8
+cpu_socket = 1
+cpu_thread_pre_core = 1
+cpu_core_pre_socket = 0
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.install.previous_product]
+location_param = '{guest_prd_url} '
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8 install={guest_prd_url} autoyast={auto_yast} '
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.install.current_product]
+location_param = '{guest_prd_url[startup_repo]},kernel=boot/x86_64/loader/linux,initrd=boot/x86_64/loader/initrd'
+kernel_param = 'console=ttyS0 linuxrc.log=/dev/ttyS0 linuxrc.core=/dev/ttyS0,115200  live.password={password}  agama.install_url={guest_prd_url[install_repo]} root=live:{guest_prd_url[install_iso]}  inst.auto={auto_yast} inst.finish=poweroff '
+install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+# Array of tables for disks
+[[VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_cache = 'none'
+disk_bus = 'virtio'
+l2_cache_size = '8388608'
+disk_qemu_cmd = '-device pcie-root-port,addr=09.0,id=pci.10 -drive file={disk_file_abs_path},format={disk_type},l2-cache-size={l2_cache_size},if=none,cache={disk_cache},id=drive-virtio-disk1 -device virtio-blk-pci,drive=drive-virtio-disk1,id=virtio-disk1,bus=pci.10'
+disk_extra_cmd = ''
+
+# Array of tables for nets
+[[VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = '--network bridge={net_br_name},model={net_bus}'
+
+# Default Hardware Configuration Specification
+[HARDWARE_CONFIG]

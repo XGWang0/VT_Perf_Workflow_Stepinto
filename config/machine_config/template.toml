@@ -1,0 +1,122 @@
+[PHYSIVAL_MACHINE]
+# Test Disk UIDs (UUIDs/Identifiers)
+phy_machine_test_disk_uid = 'scsi-364cd98f05d651d002712c2f029596c27'
+
+[PHYSIVAL_MACHINE.phy_machine_net_pair]
+client_end = 'ph047'
+server_end = 'vh019'
+
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.basic]
+memory = 8192
+cpu = 8
+br_name = 'br0'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.install.previous_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=hvc0,115200'
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.pv.install.current_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=hvc0,115200'
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[[VIRTUAL_MACHINE.vir_machine_cfg.pv.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_image_param = " -o extended_l2=on,cluster_size=2M "
+disk_cache = 'directsync'
+disk_qemu_cmd = ''
+disk_extra_cmd = '--disk path={disk_file_abs_path},format={disk_type},cache={disk_cache}'
+
+[[VIRTUAL_MACHINE.vir_machine_cfg.pv.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = ''
+
+# ----------------------------------------------------------------------
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.basic]
+memory = 8192
+cpu = 8
+br_name = 'br0'
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+qemu_commandline = ''
+extra_parameter = ''
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.install.previous_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.hvm.install.current_product]
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8'
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+# Array of tables for disks
+[[VIRTUAL_MACHINE.vir_machine_cfg.hvm.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_image_param = " -o extended_l2=on,cluster_size=2M "
+disk_cache = 'directsync'
+disk_qemu_cmd = ''
+disk_extra_cmd = '--disk path={disk_file_abs_path},format={disk_type},cache={disk_cache}'
+
+# Array of tables for nets
+[[VIRTUAL_MACHINE.vir_machine_cfg.hvm.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = ''
+
+# ----------------------------------------------------------------------
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.basic]
+cpu_mode = 'host-passthrough'
+memory = 8192
+br_name = 'br0'
+cpu = 8
+cpu_socket = 1
+cpu_thread_pre_core = 1
+cpu_core_pre_socket = 0
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.install.previous_product]
+location_param = '{guest_prd_url} '
+kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8 install={guest_prd_url} autoyast={auto_yast} '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.install.current_product]
+location_param = '{guest_prd_url[startup_repo]},kernel=boot/x86_64/loader/linux,initrd=boot/x86_64/loader/initrd'
+kernel_param = 'console=ttyS0 linuxrc.log=/dev/ttyS0 linuxrc.core=/dev/ttyS0,115200  live.password=nots3cr3t  agama.install_url={guest_prd_url[install_repo]} root=live:{guest_prd_url[install_iso]}  inst.auto=http://10.200.129.6/assets/autoyast/vt_perf_openqa/guest_common_profile.jsonnet inst.finish=poweroff '
+qemu_commandline = ''
+extra_parameter = ''
+register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+
+# Array of tables for disks
+[[VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.disks]]
+disk_type = "qcow2"
+use_existing_disk_file = false
+disk_size = '60G'
+disk_cache = 'none'
+disk_bus = 'virtio'
+l2_cache_size = '8388608'
+disk_qemu_cmd = '-device pcie-root-port,addr=09.0,id=pci.10 -drive file={disk_file_abs_path},format={disk_type},l2-cache-size={l2_cache_size},if=none,cache={disk_cache},id=drive-virtio-disk1 -device virtio-blk-pci,drive=drive-virtio-disk1,id=virtio-disk1,bus=pci.10'
+disk_extra_cmd = ''
+
+# Array of tables for nets
+[[VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.nets]]
+net_bus = 'virtio'
+net_br_name = 'nettest_br'
+net_qemu_cmd = ''
+net_extra_cmd = '--network bridge={net_br_name},model={net_bus}'

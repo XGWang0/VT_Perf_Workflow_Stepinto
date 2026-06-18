@@ -1,0 +1,51 @@
+
+workflow_name: "SUT Environment Prepare"
+workflow_steps:
+  - steps_name: "Add repository[s]"
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare
+      # Installing performance-related and tuning packages
+      {% for pkg in test_dict.PACKAGES.pkgs_for_prepare %}
+      zypper install -y {{ pkg }}
+      {% endfor %}
+    script_instroduction: The step is to install packages for virtualization and host monitor.
+  - steps_name: "Config grub file"
+    script_name: install_pkgs.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare
+      # Installing performance-related and tuning packages
+      grubfile=/boot/grub2/grub.cfg
+      default_grubfile=/etc/default/grub
+      grubitem='GRUB_CMDLINE_LINUX_DEFAULT='
+
+      # Disable qaset to avoid running baremetal performance run
+      if ! grep 'qaset=off' $${default_grubfile} > /dev/null;then
+        sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 qaset=off/' $${default_grubfile}
+      fi
+
+      # Set mitigations to auto as default
+      if grep 'mitigations=' $${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/mitigations=.* /mitigations=auto /' $${default_grubfile}
+      else
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 mitigations=auto/' $${default_grubfile}
+      fi
+
+      # Security setting 
+      if grep 'selinux=' $${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/selinux=.* /selinux=1 /' $${default_grubfile}
+      else
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 selinux=1/' $${default_grubfile}
+      fi
+
+      if ! grep 'security=selinux' $${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/security=.* /security=selinux /' $${default_grubfile}
+      else
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 security=selinux/' $${default_grubfile}
+      fi
+
+      grub2-mkconfig -o $${grubfile}
+    script_instroduction: The step is to install packages for virtualization and host monitor.
+

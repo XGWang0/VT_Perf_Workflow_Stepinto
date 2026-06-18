@@ -1,0 +1,1507 @@
+:root {
+  --bg-primary: #0a0b10;
+  --bg-secondary: #11131e;
+  --bg-card: rgba(17, 19, 30, 0.75);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-focus: #5275ff;
+  
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  --accent-primary: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-glow: rgba(79, 70, 229, 0.4);
+  
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Background glowing accents */
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+}
+
+.bg-glow-1 {
+  background-color: var(--accent-primary);
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  left: -100px;
+}
+
+.bg-glow-2 {
+  background-color: #06b6d4;
+  width: 350px;
+  height: 350px;
+  bottom: -50px;
+  right: -50px;
+}
+
+/* App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  background-color: rgba(10, 11, 16, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.logo .icon {
+  color: var(--border-focus);
+}
+
+/* Main Content Area (Scrollable viewport) */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* Centered Unified Vertical Layout */
+.content-flow {
+  width: 100%;
+  max-width: 1800px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.panel-header {
+  margin-bottom: 1.25rem;
+}
+
+.panel-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.panel-header p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* CONFIGURATION CENTER PANELS (Top Row) */
+.config-form-wrapper {
+  width: 100%;
+}
+
+.config-row {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  align-items: stretch; /* Forces equal heights on both SUT and Product config cards */
+}
+
+@media (max-width: 1024px) {
+  .config-row {
+    flex-direction: column;
+  }
+}
+
+.action-card {
+  background-color: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem; /* Reduced padding from 2rem to 1.5rem for a more compact card */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Compact SUT & Product Card Input Sizing Overrides */
+.action-card input,
+.action-card .form-select {
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.9rem !important;
+  border-radius: 0.375rem !important;
+}
+
+.action-card label {
+  font-size: 0.75rem !important;
+}
+
+/* Compact Launch Button Override */
+.action-card .btn-primary {
+  width: auto !important; /* No longer stretches 100% full-width */
+  padding: 0.55rem 1.25rem !important;
+  font-size: 0.875rem !important;
+  border-radius: 0.375rem !important;
+  margin-top: 0.5rem !important;
+  align-self: flex-start; /* Aligns elegantly left inside the form */
+}
+
+/* Info Status Banner for Symmetrical Alignment */
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+  flex: 1; /* Stretch to fill space dynamically and keep cards aligned */
+}
+
+.info-icon {
+  color: var(--border-focus);
+  flex-shrink: 0;
+}
+
+.info-banner span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Dynamic Hardware Fields Container */
+#dynamic-hardware-fields {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dynamic-fields-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--border-focus);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Dynamic Hardware Specifications List (Sleek labels, no inputs) */
+.hardware-specs-list {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  overflow-y: auto; /* Enable scrolling for extensive lists */
+  max-height: 250px; /* Locked height for compact card layout balance */
+  animation: fadeIn 0.3s ease;
+}
+
+/* Custom mini scrollbar for the dynamic specs list */
+.hardware-specs-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hardware-specs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hardware-specs-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+
+.hardware-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.hardware-spec-row:last-child {
+  border-bottom: none;
+}
+
+.spec-label {
+  font-family: var(--font-sans);
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.025em;
+}
+
+.spec-value {
+  font-family: var(--font-mono);
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #06b6d4; /* Beautiful neon cyan spec color */
+  text-align: right;
+  max-width: 70%;
+  word-break: break-all; /* Ensure wrapping of long CPU models */
+}
+
+.card-header {
+  margin-bottom: 1.5rem;
+}
+
+.card-header h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.card-header p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* WORKFLOW STUDIO CARD (Unified Middle Panel) */
+.workflow-studio-card {
+  background-color: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+.studio-body {
+  display: grid;
+  grid-template-columns: 0.9fr 40px 1.3fr; /* Left steps column narrow, divider, roomy right script editor */
+  gap: 1.5rem;
+  align-items: stretch; /* Forces left column and right column to be exactly the SAME height */
+  height: auto; /* Allow natural expansion when terminal is unhidden inside right column */
+  min-height: 380px; /* Locked physical baseline height for clean symmetry on boot */
+}
+
+/* Studio Column Elements */
+.workflow-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.script-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Tidy gap between script editor box and the terminal console below */
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .studio-body {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .studio-divider {
+    display: none !important;
+  }
+}
+
+/* Symmetrical Stage-Level Connector (Vertical pipeline flow between Stage cards) */
+.stage-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0.25rem 0;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.stage-connector-line {
+  width: 2px;
+  height: 0.75rem;
+  background: linear-gradient(to bottom, var(--border-color), rgba(255, 255, 255, 0.04));
+  opacity: 0.5;
+}
+
+.stage-connector-node {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: rgba(82, 117, 255, 0.06);
+  border: 1px solid rgba(82, 117, 255, 0.2);
+  box-shadow: 0 0 8px rgba(82, 117, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border-focus);
+  margin: 2px 0;
+  flex-shrink: 0;
+}
+
+.connector-arrow-icon {
+  stroke-width: 3;
+  animation: pulse-arrow 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-arrow {
+  0%, 100% {
+    transform: translateY(-1px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(1px);
+    opacity: 1;
+  }
+}
+
+/* STUDIO CENTER DIVIDER: Cyber-style connecting bridge */
+.studio-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.divider-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(to bottom, var(--border-color), var(--border-focus), var(--border-color));
+  opacity: 0.4;
+}
+
+.divider-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #06b6d4; /* Glowing cyan center node */
+  border: 2.5px solid var(--bg-primary);
+  box-shadow: 0 0 10px #06b6d4, 0 0 20px #06b6d4;
+  animation: pulse-divider-node 2.5s infinite ease-in-out;
+  margin: 10px 0;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-divider-node {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 8px #06b6d4, 0 0 15px #06b6d4;
+  }
+  50% {
+    transform: scale(1.4);
+    box-shadow: 0 0 14px #06b6d4, 0 0 25px #06b6d4;
+  }
+}
+
+/* Step Cards */
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Slighly tighter gap to fit 480px box exactly */
+  overflow-y: auto; /* Enable smooth vertical scroll for full-length dynamic stages */
+  max-height: 100%;
+  padding-right: 0.25rem;
+}
+
+/* Custom mini scrollbar for the workflow steps column */
+.workflow-steps::-webkit-scrollbar {
+  width: 4px;
+}
+
+.workflow-steps::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflow-steps::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+
+/* Symmetrical Accordion Collapsible Stage Card (Level 1) */
+.stage-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.stage-card:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stage-card.active-stage {
+  border-color: var(--border-focus);
+  background-color: rgba(82, 117, 255, 0.05);
+  box-shadow: 0 0 10px rgba(82, 117, 255, 0.1);
+}
+
+.stage-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stage-card-num {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--border-focus);
+  min-width: 20px;
+}
+
+.stage-card-title {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stage-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.stage-card:hover .stage-toggle-btn {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Collapsible Sub-steps container (Level 2) */
+.sub-steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0.5rem 0.5rem 1.5rem; /* Indented for hierarchical nesting */
+  margin-top: -0.25rem;
+  overflow: hidden;
+  max-height: 0; /* Fully collapsed by default */
+  opacity: 0;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.sub-steps-container.expanded {
+  max-height: 400px; /* Expand naturally to hold its children */
+  opacity: 1;
+}
+
+/* Tighter nesting styles for Sub-Step Cards inside Accordion list */
+.sub-steps-container .step-card {
+  padding: 0.75rem 1rem !important; /* Tighter padding for sub-elements */
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+.sub-steps-container .step-number {
+  font-size: 0.775rem !important;
+}
+
+.loading-workflow-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 0;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+}
+
+/* Workflow Studio Placeholder Messaging */
+.workflow-placeholder-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 4rem 1.5rem;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border: 1px dashed rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: auto;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease;
+}
+
+.placeholder-icon {
+  color: var(--border-focus);
+  opacity: 0.8;
+  margin-bottom: 0.25rem;
+}
+
+.step-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem; /* Tighter padding for balanced studio look */
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.step-card:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
+}
+
+.step-card.active {
+  background-color: rgba(82, 117, 255, 0.06);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 15px rgba(82, 117, 255, 0.15);
+}
+
+.step-number {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--border-focus);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.step-content p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.step-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background-color: rgba(255, 255, 255, 0.01);
+  flex-shrink: 0;
+}
+
+.step-card.active .step-badge {
+  color: var(--border-focus);
+  border-color: rgba(82, 117, 255, 0.3);
+}
+
+/* Code Editor Window */
+.code-editor-box {
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background-color: #050507;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Stretch to fill command-box! */
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Push title to left, Run button to right */
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.editor-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Green Running/Execution Button */
+/* Green Running/Execution Button - Default Gray & Muted (When Disabled) */
+.btn-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.725rem !important;
+  border-radius: 0.25rem !important;
+  font-weight: 700;
+  cursor: not-allowed !important;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin: 0 !important;
+  width: auto !important;
+  align-self: auto !important;
+  opacity: 0.45;
+}
+
+/* Green Running/Execution Button - Vibrant & Active (When Enabled) */
+.btn-run:not(:disabled) {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  color: #10b981 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+.btn-run:not(:disabled):hover {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-run-icon {
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.editor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.editor-dot:nth-child(1) { background-color: #ff5f56; }
+.editor-dot:nth-child(2) { background-color: #ffbd2e; }
+.editor-dot:nth-child(3) { background-color: #27c93f; }
+
+.editor-title {
+  margin-left: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+#command-text {
+  width: 100%;
+  flex: 1; /* Stretch to fill code-editor-box! */
+  height: auto; /* Let flexbox control the height! */
+  background-color: transparent;
+  border: none;
+  resize: none;
+  padding: 1.25rem;
+  color: #38bdf8; /* Gorgeous light blue code syntax color */
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-y: auto; /* Explicitly show vertical scrollbar on text overflow */
+}
+
+/* Custom modern scrollbar for the script editor text area */
+#command-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+#command-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#command-text::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+}
+
+#command-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+#command-text:focus {
+  outline: none;
+}
+
+/* Forms */
+.inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.flex-1 { flex: 1; }
+.flex-3 { flex: 3; }
+.flex-fill { flex: 1; }
+
+/* Plus Toggle Advanced Button */
+.btn-toggle-advanced {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 0.375rem; /* Matched to compact input corners */
+  width: 2.25rem; /* Compact size */
+  height: 2.25rem; /* Compact size */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1.25rem; /* Aligns perfectly with compact label-less horizontal axis */
+  flex-shrink: 0;
+}
+
+.btn-toggle-advanced:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.btn-toggle-advanced.active {
+  background-color: rgba(82, 117, 255, 0.15);
+  color: var(--border-focus);
+  border-color: var(--border-focus);
+}
+
+.btn-toggle-advanced .toggle-icon {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-toggle-advanced.active .toggle-icon {
+  transform: rotate(135deg); /* Plus turns into a beautiful close (x) diagonal mark! */
+}
+
+/* Expandable Drawer Transition */
+.advanced-fields {
+  margin-top: 0.5rem;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+input {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(82, 117, 255, 0.15);
+}
+
+/* Password Input Show/Hide Wrapper */
+.password-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  flex: 1;
+}
+
+.show-password-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.show-password-label input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.show-password-label span {
+  display: inline-block;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  min-width: 52px; /* Uniform width for Show/Hide text swap */
+}
+
+.show-password-label:hover span {
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.show-password-label input:checked + span {
+  border-color: var(--border-focus);
+  background-color: rgba(82, 117, 255, 0.15);
+  color: var(--border-focus);
+  box-shadow: 0 0 10px rgba(82, 117, 255, 0.15);
+}
+
+.form-select {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none; /* Hide default native select arrow to style it custom! */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23f3f4f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2 4 6 8 10 4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(82, 117, 255, 0.15);
+}
+
+/* Milestones Grid (Pulsing Checkbox Tags) */
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.checkbox-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.checkbox-tag input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-tag span {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-mono);
+}
+
+.checkbox-tag:hover span {
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.checkbox-tag input[type="checkbox"]:checked + span {
+  border-color: var(--border-focus);
+  background-color: rgba(82, 117, 255, 0.15);
+  color: var(--border-focus);
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(82, 117, 255, 0.15);
+}
+
+/* Custom Input Group (Build Prefix) */
+.input-group {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.input-group:focus-within {
+  border-color: var(--border-focus);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(82, 117, 255, 0.15);
+}
+
+.input-prefix {
+  background-color: rgba(255, 255, 255, 0.02);
+  border-right: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.input-group input {
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  flex: 1;
+  padding: 0.75rem 1rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.form-row-buttons {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  flex: 1; /* Stretch symmetrically in the row */
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.btn-secondary:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-color: var(--border-color);
+  background-color: transparent;
+}
+
+.form-row-buttons .btn-primary {
+  width: 100% !important; /* Stretches 100% of its flex column slot inside the row */
+  align-self: stretch !important;
+  flex: 1; /* Symmetrical 50-50 share */
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: white;
+  width: 100%;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Close/Disconnect Button */
+.btn-close {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-close:hover {
+  background-color: var(--danger);
+  color: white;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.close-icon {
+  stroke-width: 2.5;
+}
+
+/* Spinner */
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Alerts */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  line-height: 1.4;
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* Embedded Terminal Panel */
+.terminal-wrapper {
+  width: 100%;
+  height: 260px; /* Compact height for being embedded in the script editor column */
+  min-height: 220px;
+  background-color: #050507;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+}
+
+/* Status Indicator */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: var(--text-muted);
+  box-shadow: 0 0 4px var(--border-color);
+  transition: all 0.3s ease;
+}
+
+/* Connected state - Glowing & Breathing green light! */
+.status-indicator.connected .status-dot {
+  background-color: #10b981 !important;
+  box-shadow: 0 0 8px #10b981, 0 0 16px #10b981;
+  animation: breathe-green 2s infinite ease-in-out;
+}
+
+/* Connecting state - Pulsing/Blinking yellow light */
+.status-indicator.connecting .status-dot {
+  background-color: #f59e0b !important;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: breathe-yellow 1.5s infinite ease-in-out;
+}
+
+/* Disconnected state - Static dull red light */
+.status-indicator.disconnected .status-dot {
+  background-color: #ef4444 !important;
+  box-shadow: 0 0 5px #ef4444 !important;
+  animation: none !important;
+}
+
+/* Breathing light keyframes */
+@keyframes breathe-green {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px #10b981, 0 0 12px #10b981;
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 14px #10b981, 0 0 26px #10b981;
+    opacity: 1;
+  }
+}
+
+@keyframes breathe-yellow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px #f59e0b;
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 12px #f59e0b;
+    opacity: 1;
+  }
+}
+
+.status-text {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+#terminal {
+  flex: 1;
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Customize Xterm styles */
+.xterm .xterm-viewport {
+  background-color: #050507 !important;
+  overflow-y: auto;
+}
+
+/* Terminal Input Bar Shortcut Panel */
+.terminal-input-bar {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+#cmd-input {
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+#cmd-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background-color: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(82, 117, 255, 0.15);
+}
+
+.btn-primary-inline {
+  background-color: var(--accent-primary);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-primary-inline:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary-inline:active {
+  transform: translateY(1px);
+}
+
+/* Footer */
+.app-footer {
+  text-align: center;
+  padding: 1.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(10, 11, 16, 0.5);
+  flex-shrink: 0;
+}
+
+/* Config Viewer Modal Overlay */
+.config-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleUp 0.2s ease;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(5, 5, 7, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close-modal:hover {
+  color: #ff5f56;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-body p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.modal-body pre {
+  background-color: #050507;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  margin: 0;
+  overflow-x: auto;
+  max-height: 50vh;
+}
+
+.modal-body code {
+  font-family: var(--font-mono);
+  font-size: 0.825rem;
+  color: #38bdf8; /* Gorgeous syntax light blue */
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.btn-merge-product {
+  margin-top: 1rem !important;
+  background-color: rgba(82, 117, 255, 0.1) !important;
+  border: 1px solid rgba(82, 117, 255, 0.25) !important;
+  color: var(--border-focus) !important;
+  width: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-merge-product:hover {
+  background-color: rgba(82, 117, 255, 0.18) !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 10px rgba(82, 117, 255, 0.15);
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}

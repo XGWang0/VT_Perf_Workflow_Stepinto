@@ -1,0 +1,11 @@
+[PHYSICAL_MACHINE]
+# Test Disk UIDs (UUIDs/Identifiers)
+phy_machine_test_disk_uid = 'scsi-3600062b2136b18402ebe2f74be00aaab'
+local_test_disk_uid = 'scsi-3600062b2136b18402ebe2f74be00aaab'
+
+[PHYSICAL_MACHINE.phy_machine_net_pair]
+client_end = '2u-perf02'
+server_end = '1u-perf02'
+
+[VIRTUAL_MACHINE.vir_machine_cfg.vm.basic]
+cpu = 8

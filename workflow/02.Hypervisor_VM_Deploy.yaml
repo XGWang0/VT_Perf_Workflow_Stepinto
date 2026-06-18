@@ -1,0 +1,20 @@
+workflow_name: "Hypervisor & VM Deploy"
+workflow_steps:
+  - steps_name: "Verify Virtualization KVM capabilities"
+    script_name: verify_kvm.sh
+    script_content: |
+      #!/bin/bash
+      # Step 2: Verify KVM status
+      egrep -c '(vmx|svm)' /proc/cpuinfo
+      systemctl enable --now libvirtd
+    script_instroduction: Verify host virtualization capacities.
+  - steps_name: "Provision Virtual Machine Guest"
+    script_name: deploy_guest.sh
+    script_content: |
+      #!/bin/bash
+      # Step 2: Provision virtual machine from template
+      virsh net-define /etc/libvirt/qemu/networks/default.xml || true
+      virsh net-start default || true
+      qemu-img create -f qcow2 /var/lib/libvirt/images/vm_guest.qcow2 20G
+      virt-install --name vm_guest --memory 16384 --vcpus 12 --disk /var/lib/libvirt/images/vm_guest.qcow2,format=qcow2 --import --noautoconsole
+    script_instroduction: Create and provision virtual machine guest.

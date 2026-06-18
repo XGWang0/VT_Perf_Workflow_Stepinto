@@ -1,0 +1,20 @@
+workflow_name: "System Performance Tracing"
+workflow_steps:
+  - steps_name: "Launch real-time telemetry tracing"
+    script_name: start_tracing.sh
+    script_content: |
+      #!/bin/bash
+      # Step 4: Starting real-time tracing
+      iostat -xz 1 10 > iostat_report.log &
+      vmstat 1 10 > vmstat_report.log &
+    script_instroduction: Launch system I/O and virtual memory tracers.
+  - steps_name: "Measure socket & turbostat telemetry"
+    script_name: measure_turbostat.sh
+    script_content: |
+      #!/bin/bash
+      # Step 4: Measure CPU socket telemetry
+      turbostat --Interval 1 --count 10 > turbostat_report.log &
+      echo "Aggregating performance run results..."
+      wait
+      cat iostat_report.log | head -n 15
+    script_instroduction: Analyze core frequency, memory, and disk telemetry.
