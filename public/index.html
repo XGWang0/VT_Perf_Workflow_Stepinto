@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VT Auto Performance Tuning Dashboard</title>
   
+  <!-- SUT VM & Performance Sparkline SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  
   <!-- xterm.js CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
   
@@ -25,7 +28,46 @@
     <!-- Header -->
     <header class="app-header">
       <div class="logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 200 200" class="icon" style="vertical-align: middle; margin-right: 8px;">
+          <!-- Pure White Background Circle -->
+          <circle cx="100" cy="100" r="95" fill="#ffffff" />
+          
+          <!-- Clean Black Outline Group (No Body Fill, Stroke-width: 6.5) -->
+          <g fill="none" stroke="#222222" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Rounded Head Dome -->
+            <path d="M 60,82 A 40,40 0 1,1 140,82" />
+            
+            <!-- Chubby Body & Neck -->
+            <path d="M 60,82 C 48,110 48,150 52,170 H 148 C 152,150 152,110 140,82" />
+            
+            <!-- Flat Beaver-like Paddle Tail -->
+            <path d="M 148,145 C 168,142 185,146 190,160 C 195,174 175,180 148,174" />
+            <!-- Tail texture lines -->
+            <path d="M 158,152 Q 175,158 182,163" />
+            <path d="M 152,162 Q 168,168 174,172" />
+            
+            <!-- Left Webbed Flipper -->
+            <path d="M 52,170 C 40,174 30,182 34,190 C 38,196 50,192 60,170" />
+            
+            <!-- Right Webbed Flipper -->
+            <path d="M 148,170 C 160,174 170,182 166,190 C 162,196 150,192 140,170" />
+            
+            <!-- Wide Duck Bill (Snout) facing forward with wave curves -->
+            <path d="M 65,110 C 65,126 135,126 135,110 C 135,100 122,96 115,96 C 110,96 108,90 100,90 C 92,90 90,96 85,96 C 78,96 65,100 65,110 Z" />
+            
+            <!-- Friendly Eyebrows -->
+            <path d="M 72,65 C 75,62 81,62 84,65" />
+            <path d="M 116,65 C 119,62 125,62 128,65" />
+          </g>
+          
+          <!-- Eyes & Nostrils (Solid Black Fills, No Strokes) -->
+          <g fill="#222222">
+            <circle cx="78" cy="78" r="5" />
+            <circle cx="122" cy="78" r="5" />
+            <circle cx="93" cy="114" r="2" />
+            <circle cx="107" cy="114" r="2" />
+          </g>
+        </svg>
         <span>VT Performance Auto-Tuning Dashboard</span>
       </div>
       <!-- Top Status Bar Indicator -->
@@ -91,54 +133,123 @@
             </section>
 
             <!-- RIGHT PANEL: Product Configuration Card -->
-            <section class="action-card flex-1">
+            <section class="action-card flex-3">
               <div class="card-header">
                 <h2>Product Configuration</h2>
                 <p>Specify the software criteria. These settings are dynamically merged and replace placeholders in target configurations.</p>
               </div>
 
-              <!-- Row 1: Product Release Dropdown (100% width) -->
-              <div class="form-group">
-                <label for="product">Product Release</label>
-                <select id="product" class="form-select">
-                  <option value="sles-15-sp5">SLES 15 SP5</option>
-                  <option value="sles-15-sp6">SLES 15 SP6</option>
-                  <option value="sles-15-sp7" selected>SLES 15 SP7</option>
-                  <option value="sles-16">SLES 16.0</option>
-                  <option value="sles-16.1">SLES 16.1</option>
-                </select>
-              </div>
+              <!-- Flex Container for side-by-side Host and Guest sections -->
+              <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
 
-              <!-- Row 2: Milestone Select Dropdown (100% width) -->
-              <div class="form-group">
-                <label for="milestone">Milestone</label>
-                <select id="milestone" class="form-select">
-                  <option value="beta1">beta1</option>
-                  <option value="beta2">beta2</option>
-                  <option value="beta3">beta3</option>
-                  <option value="publicBeta">publicBeta</option>
-                  <option value="openBeta">openBeta</option>
-                  <option value="RC1">RC1</option>
-                  <option value="RC2">RC2</option>
-                  <option value="RC3">RC3</option>
-                  <option value="PublicRC">PublicRC</option>
-                  <option value="OpenRC">OpenRC</option>
-                  <option value="GMC">GMC</option>
-                  <option value="GM" selected>GM</option>
-                </select>
-              </div>
+                <!-- LEFT COLUMN: SUT HOST PRODUCT INFO -->
+                <div class="flex-1" style="min-width: 250px; display: flex; flex-direction: column;">
+                  <!-- HOST SECTION -->
+                  <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--border-focus); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.35rem; font-weight: 700;">Host SUT Product Info</h3>
 
-              <!-- Row 3: Build Version input (100% width) -->
-              <div class="form-group">
-                <label for="build-ver">Build Version</label>
-                <div class="input-group">
-                  <span class="input-prefix">Build</span>
-                  <input type="text" id="build-ver" required placeholder="0124" value="0124" />
+                  <!-- Row 1: Product Release Dropdown (100% width) -->
+                  <div class="form-group">
+                    <label for="product">Product Release</label>
+                    <select id="product" class="form-select">
+                      <option value="sles-15-sp5">SLES 15 SP5</option>
+                      <option value="sles-15-sp6">SLES 15 SP6</option>
+                      <option value="sles-15-sp7" selected>SLES 15 SP7</option>
+                      <option value="sles-16">SLES 16.0</option>
+                      <option value="sles-16.1">SLES 16.1</option>
+                    </select>
+                  </div>
+
+                  <!-- Row 2: Milestone Select Dropdown (100% width) -->
+                  <div class="form-group">
+                    <label for="milestone">Milestone</label>
+                    <select id="milestone" class="form-select">
+                      <option value="beta1">beta1</option>
+                      <option value="beta2">beta2</option>
+                      <option value="beta3">beta3</option>
+                      <option value="publicBeta">publicBeta</option>
+                      <option value="openBeta">openBeta</option>
+                      <option value="RC1">RC1</option>
+                      <option value="RC2">RC2</option>
+                      <option value="RC3">RC3</option>
+                      <option value="PublicRC">PublicRC</option>
+                      <option value="OpenRC">OpenRC</option>
+                      <option value="GMC">GMC</option>
+                      <option value="GM" selected>GM</option>
+                    </select>
+                  </div>
+
+                  <!-- Row 3: Build Version input (100% width) -->
+                  <div class="form-group" id="build-ver-group">
+                    <label for="build-ver">Build Version</label>
+                    <div class="input-group">
+                      <span class="input-prefix">Build</span>
+                      <input type="text" id="build-ver" required placeholder="0124" value="0124" />
+                    </div>
+                  </div>
+
+                  <!-- Row 3.5: Product Image Url input (100% width, hidden by default because SLES 15 SP7 is selected initially) -->
+                  <div class="form-group hidden" id="product-img-group">
+                    <label for="product-img">Product Image Url</label>
+                    <input type="text" id="product-img" placeholder="e.g., http://download.suse.de/..." value="http://openqa.qa2.suse.asia/assets/repo/fixed/SLE-15-SP7-Full-x86_64-GM-Media1/" />
+                  </div>
                 </div>
-              </div>
+
+                <!-- RIGHT COLUMN: GUEST VM PRODUCT INFO -->
+                <div class="flex-1" style="min-width: 250px; display: flex; flex-direction: column; border-left: 1.5px solid rgba(255, 255, 255, 0.15); padding-left: 1.5rem;">
+                  <!-- GUEST VM SECTION -->
+                  <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--border-focus); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.35rem; font-weight: 700;">Guest VM Product Info</h3>
+
+                  <!-- Row 1: Product Release Dropdown (100% width) -->
+                  <div class="form-group">
+                    <label for="guest-product">Product Release</label>
+                    <select id="guest-product" class="form-select">
+                      <option value="sles-15-sp5">SLES 15 SP5</option>
+                      <option value="sles-15-sp6">SLES 15 SP6</option>
+                      <option value="sles-15-sp7" selected>SLES 15 SP7</option>
+                      <option value="sles-16">SLES 16.0</option>
+                      <option value="sles-16.1">SLES 16.1</option>
+                    </select>
+                  </div>
+
+                  <!-- Row 2: Milestone Select Dropdown (100% width) -->
+                  <div class="form-group">
+                    <label for="guest-milestone">Milestone</label>
+                    <select id="guest-milestone" class="form-select">
+                      <option value="beta1">beta1</option>
+                      <option value="beta2">beta2</option>
+                      <option value="beta3">beta3</option>
+                      <option value="publicBeta">publicBeta</option>
+                      <option value="openBeta">openBeta</option>
+                      <option value="RC1">RC1</option>
+                      <option value="RC2">RC2</option>
+                      <option value="RC3">RC3</option>
+                      <option value="PublicRC">PublicRC</option>
+                      <option value="OpenRC">OpenRC</option>
+                      <option value="GMC">GMC</option>
+                      <option value="GM" selected>GM</option>
+                    </select>
+                  </div>
+
+                  <!-- Row 3: Build Version input (100% width) -->
+                  <div class="form-group" id="guest-build-ver-group">
+                    <label for="guest-build-ver">Build Version</label>
+                    <div class="input-group">
+                      <span class="input-prefix">Build</span>
+                      <input type="text" id="guest-build-ver" required placeholder="0124" value="0124" />
+                    </div>
+                  </div>
+
+                  <!-- Row 3.5: Product Image Url input (100% width, hidden by default because SLES 15 SP7 is selected initially) -->
+                  <div class="form-group hidden" id="guest-product-img-group">
+                    <label for="guest-product-img">Product Image Url</label>
+                    <input type="text" id="guest-product-img" placeholder="e.g., http://download.suse.de/..." value="http://openqa.qa2.suse.asia/assets/repo/fixed/SLE-15-SP7-Full-x86_64-GM-Media1/" />
+                  </div>
+                </div>
+
+              </div> <!-- End Flex Container -->
 
               <!-- Row 4: Professional Info Status Banner -->
-              <div class="info-banner">
+              <div class="info-banner" style="margin-top: 1.5rem;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="info-icon"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
                 <span>Machine overrides will overwrite master configuration file settings dynamically.</span>
               </div>
@@ -205,14 +316,13 @@
               <section id="terminal-wrapper" class="terminal-wrapper hidden">
                 <div class="terminal-header">
                   <div class="session-info">
-                    <div id="lower-status-indicator" class="status-indicator disconnected">
-                      <span class="status-dot" id="lower-status-dot"></span>
-                      <span class="status-text" id="session-label">disconnected</span>
-                    </div>
+                    <button id="session-toggle-btn" class="btn btn-session-disconnected" type="button" title="SSH Terminal Session Control">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="reconnect-icon"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                      <span>Reconnect</span>
+                    </button>
                   </div>
-                  <button id="close-btn" class="btn btn-close" title="Close Terminal Session">
+                  <button id="close-btn" class="btn btn-close" title="Close and Hide Terminal">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-icon"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
-                    <span>Close</span>
                   </button>
                 </div>
                 <div id="terminal"></div>

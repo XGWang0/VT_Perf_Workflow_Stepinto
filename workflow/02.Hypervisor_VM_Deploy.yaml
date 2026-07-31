@@ -1,20 +1,237 @@
 workflow_name: "Hypervisor & VM Deploy"
 workflow_steps:
-  - steps_name: "Verify Virtualization KVM capabilities"
-    script_name: verify_kvm.sh
+  - steps_name: "Verify all mandatory resources"
+    script_name: verify_resource.sh
+    script_instroduction: Verify all mandatory resource guest installation need.
     script_content: |
       #!/bin/bash
-      # Step 2: Verify KVM status
-      egrep -c '(vmx|svm)' /proc/cpuinfo
-      systemctl enable --now libvirtd
-    script_instroduction: Verify host virtualization capacities.
-  - steps_name: "Provision Virtual Machine Guest"
+      # Verify the bridge name br0
+      bridge_name='br0'
+      if ! `ip link shhow ${bridge_name}`;then
+        echo "No bridge br0 for virtual machine need"
+      fi
+      guest_autoyast={{ VIRTUAL_MACHINE.autoyast_url[product_ver].vm }}
+      if ! curl -fs -m 5 "${guest_autoyast}" > /dev/null 2>&1; then
+          echo "NO available agama unattached file for Virtual machine installation "
+      fi
+
+      {% if guest_prd_url is string %}
+        if ! curl -fs -m 5 "{ guest_prd_url }" > /dev/null 2>&1; then
+          echo "NO available mandaotry repository for Virtual machine installation "
+        fi
+      {% else %}
+        {% for val in guest_prd_url.values() %}
+            if ! curl -fs -m 5 "{{ val }}" > /dev/null 2>&1; then
+              echo "NO available mandaotry repository for Virtual machine installation "
+            fi
+        {% endfor %}
+      {% endif %}
+  - steps_name: "Create working directory"
+    script_name: create_working_dir.sh
+    script_instroduction: Create working directory and test disk mount point.
+    script_content: |
+      #!/bin/bash
+      # 
+      working_dir="/kvm"
+      test_disk_mount_point="${working_dir}/disk_io"
+
+      mkdir -p ${working_dir}
+      mkdir -p ${test_disk_mount_point}
+  - steps_name: "Create backing file directory for guest test disk"
+    script_name: create_backing_file_dir.sh
+    script_instroduction: Create backing file directory of guest test disk.
+    script_content: |
+      #!/bin/bash
+      # 
+      disk_phy_uid={{ test_dict.PHYSICAL_MACHINE.phy_machine_test_disk_uid }}
+      test_disk_fs_type={{ test_dict.PHYSICAL_MACHINE.diskio_test_fs }}
+
+      working_dir="/kvm"
+      test_disk_mount_point="${working_dir}/disk_io"
+
+      # Get device disk of test disk
+      dev_disk=
+      if [ -b /dev/disk/by-id/${disk_phy_uid} -a -L /dev/disk/by-id/${disk_phy_uid} ];then
+          dev_disk=`readlink -f /dev/disk/by-id/${disk_phy_uid}`
+      else
+          echo "No device disk for $disk_phy_uid"
+      fi
+
+      # Found the existent partition with ABUILD label
+      abuild_partition=`lsblk  --list -p -oname,label | grep ABUILD | cut -d" " -f1
+
+      if [[ *"${abuild_partition}"* != ${dev_disk} ]];then
+          mkfs.${test_disk_fs_type}  -f -L ABUILD ${dev_disk} && sync && sleep 2
+      fi
+
+      # Mount test disk to working directory
+      mount ${dev_disk}1 ${test_disk_mount_point}
+  - steps_name: "Install guest"
+    script_name: install_vm.sh
+    script_instroduction: Install guest by virt-install for performance test need.
+    script_content: |
+      #!/bin/bash
+      # Loops destroy all vm_guest
+      for vm in $(virsh list --all --name); do
+        virsh destroy "$vm"
+        virsh undefine "$vm"
+      done
+
+      vm_name="vm-kvm-{ host }"
+      disk_base_abs_path=${working_dir}/base_vm.$(printf "%s" "{ guest_product_ver }-{ guest_milestone }-vm" | md5sum | awk '{print $1}')
+      disk_fs_abs_path=${working_dir}/${vm_name}.fs_disk
+
+      {% set vm_basic = test_dict.VIRTUAL_MACHINE.vir_machine_cfg.vm.basic %}
+      {% set vm_disk = test_dict.VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.disks[0] %}
+      {% set vm_install = test_dict.VIRTUAL_MACHINE.vir_machine_cfg.vm.install.current_product %}
+
+      # Create base guest command
+      function create_base_guest() {
+        virt-install \
+          --name ${vm_name} \
+          --disk path=${disk_base_abs_path},format=qcow2,bus=virtio,boot_order=1 \
+          --osinfo detect=on,require=off  \
+          --noautoconsole \
+          --serial pty --console pty,target.type=serial \
+          --vnc   --wait=240 \
+          --cpu {{ vm_basic.cpu_mode }} --machine={{ vm_basic.machine }} \
+          --vcpus={{ vm_basic.cpu }}  \
+          --memory=16384 \
+          --network bridge={{ vm_basic.br_name }},model=virtio  \
+          {{ vm_install.install_extra_parameter }} \
+          --events on_reboot=restart  \
+          --location="{{ vm_install.location_param }}" \
+          -x "{{ vm_install.kernel_param }} inst.script=http://10.200.129.6/assets/autoyast/vt_perf_openqa/wait.sh  \
+              {{ vm_install.register_url }}"
+      }
+
+      # Import guest command line according to existent disk
+      function import_guest() {
+        disk_qemu_cmd={{ vm_disk. disk_qemu_cmd }}
+        virt-install \
+          --name ${vm_name}  \
+          --disk path="${disk_fs_abs_path}",format=qcow2,bus=virtio,boot_order=1  \
+          --import  \
+          --osinfo detect=on,require=off  \
+          --noautoconsole  --vnc  \
+          --cpu {{ vm_basic.cpu_mode }}  \
+          --machine={{ vm_basic.machine }}  \
+          --vcpus={{ vm_basic.cpu }}  \
+          --memory={{ vm_basic.memory }} \
+          --network bridge={{ vm_basic.br_name }},model=virtio \
+          {{ vm_install.install_extra_parameter }}\
+          --qemu-commandline=" {{ vm_disk. disk_qemu_cmd | replace("{disk_file_abs_path}","${disk_file_abs_path}") }} "
+      }
+      if [ -f ${disk_abs_path} ];then
+        # Create file system disk according to base disk
+        qemu-img create -f qcow2 -b ${disk_base_abs_path} -F qcow2 ${disk_fs_abs_path}
+        chown qemu:qemu ${disk_fs_abs_path}
+        # Import guest
+        import_guest
+      else
+        # Create base disk
+        qemu-img create -f {{ vm_disk.disk_type }} {{ vm_disk.disk_extra_cmd }} ${disk_abs_path} 20G
+        chown qemu:qemu ${disk_abs_path}
+
+        # Create base guest
+        create_base_guest
+        # Import guest
+        import_guest
+      fi
+  - steps_name: "Capture IP Of Virtual Machine Guest"
     script_name: deploy_guest.sh
+    script_instroduction: Capture guest IPv4 of virtual machine.
     script_content: |
       #!/bin/bash
-      # Step 2: Provision virtual machine from template
-      virsh net-define /etc/libvirt/qemu/networks/default.xml || true
-      virsh net-start default || true
-      qemu-img create -f qcow2 /var/lib/libvirt/images/vm_guest.qcow2 20G
-      virt-install --name vm_guest --memory 16384 --vcpus 12 --disk /var/lib/libvirt/images/vm_guest.qcow2,format=qcow2 --import --noautoconsole
-    script_instroduction: Create and provision virtual machine guest.
+      set -e
+      VM_NAME="vm-kvm-{ host }"
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      rm -f ${TMP_IP_FILE}
+
+      expect -c "
+        fconfigure stdout -buffering none
+        log_user 1
+        set timeout 60
+        spawn virsh console --force ${VM_NAME}
+
+        # Wait for connection setup
+        expect \"Connected to domain\"
+        sleep 1
+
+        # Use short timeout (2s) to quickly wake and detect serial console, avoiding hanging for 60s if the VM is still booting
+        set timeout 2
+        set retry 0
+        set logged_in 0
+        set has_login 0
+        while {\$retry < 25} {
+            send \"\r\"
+            expect {
+                timeout  { }
+                \"login:\" { set has_login 1; break }
+                -re {\\#\\s*} { set logged_in 1; break }
+            }
+            incr retry
+            sleep 1
+        }
+
+        # Restore normal long timeout for executing commands
+        set timeout 60
+
+        # ========== Login first to get root shell prompt ==========
+        if {\$logged_in == 0} {
+            if {\$has_login == 0} {
+                expect \"login:\"
+            }
+            send \"root\r\"
+            expect \"Password:\"
+            send \"nots3cr3t\r\"
+            expect -re {\\#\\s*}
+        }
+
+        # Already logged in, poll for IP address dynamically to ensure we capture it as soon as DHCP is allocated without hard timeout waiting
+        set ip_retry 0
+        set guest_ip \"\"
+        while {\$ip_retry < 30} {
+            send \"ip -4 addr show scope global\r\"
+            expect {
+                timeout { }
+                -re {inet\\s+([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)\\/scope global} {
+                    set guest_ip \$expect_out(1,string)
+                    break
+                }
+                -re {inet\\s+([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)\\/[^\\r\\n]+} {
+                    set guest_ip \$expect_out(1,string)
+                    break
+                }
+                -re {\\#\\s*} { }
+            }
+            if {\$guest_ip != \"\"} {
+                break
+            }
+            incr ip_retry
+            sleep 2
+        }
+        puts \"\$guest_ip\"
+
+        # Save guest IP to the host temporary file
+        exec echo \$guest_ip > ${TMP_IP_FILE}
+
+        # Exit guest shell to login prompt
+        send \"exit\r\"
+        sleep 1
+        # Send escape sequence Ctrl+] (\x1d) to exit virsh console safely
+        send \"\x1d\"
+        expect eof
+      "
+
+      # Allow late-arriving ANSI DSR reports to populate the stdin buffer before reading
+      sleep 0.2
+      # Discard residual ANSI DSR reports (like R36R6R36R7R36R) from stdin buffer
+      read -t 0.5 -n 100000 discard_junk || true
+
+      if [ ! -f "${TMP_IP_FILE}" ] || [ ! -s "${TMP_IP_FILE}" ];then
+        echo "ERROR: Failed to capture virtual machine IP address!"
+      fi
+      echo "Success get VM IP: $(cat ${TMP_IP_FILE})"
+      
+

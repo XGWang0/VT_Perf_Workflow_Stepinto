@@ -1,0 +1,211 @@
+workflow_name: "Virtual Machine Test Environment Prepare"
+workflow_steps:
+  - steps_name: "Add repository[s] inside guest"
+    script_name: add_repos.sh
+    script_instroduction: The step is to add qa and migration update repository.
+    script_content: |
+      #!/bin/bash
+      # Step 1: Guest Environment Prepare
+      # Add repositorys
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      ${SSH_GUEST} zypper ar {{ test_dict.PRODUCT.qa_repo_map[guest_product_ver] }} qa_head
+      {% if test_dict.PRODUCT.prd_migration_url_map[guest_product_ver] is defined %}
+        {% for migr_url in test_dict.PRODUCT.prd_migration_url_map[guest_product_ver].ZH %}
+          ${SSH_GUEST} zypper lr -d | grep {{ migr_url }} || zypper ar -f {{ migr_url }} update_${echo $RANDOM$RANDOM | cut -c1-10}
+        {% endfor %}
+      {% endif %}
+
+  - steps_name: "Add packages and patterns inside guest"
+    script_instroduction: The step is to install packages and pattern for virtualization performance needed.
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      # Install packages
+      {% for pkg in test_dict.PACKAGES.pkgs_for_prepare %}
+        ${SSH_GUEST} zypper install -y {{ pkg }}
+      {% endfor %}
+
+      # Install patterns
+      {% for pattern in test_dict.PACKAGES.pattern_for_prepare %}
+        ${SSH_GUEST} zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+
+      # Install patterns of virtualization needed
+      {% for pattern in test_dict.PACKAGES.pkgs_for_hypervisor.kvm %}
+        ${SSH_GUEST} zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+  - steps_name: "Install sleperf scheduler server inside guest"
+    script_instroduction: The step is to install sleperf server (QE performance structure).
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      # Installing sleperf scheduler server for performance test need
+
+      # Install packages of virtualization performance needed
+      {% for pkg in test_dict.PACKAGES.pkgs_for_perf %}
+        ${SSH_GUEST} zypper install -y {{ pkg }}
+      {% endfor %}
+
+      # Install patterns of virtualization performance needed
+      {% for pattern in test_dict.PACKAGES.pattern_for_perf %}
+        ${SSH_GUEST} zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+      # UnInstall existent sleperf scheduler server
+      ${SSH_GUEST} "cd ~/sleperf-master/SLEPerf/common-infra;./uninstaller.sh"
+      ${SSH_GUEST} "cd ~/sleperf-master/SLEPerf/common-infra;./uninstaller.sh"
+
+      ${SSH_GUEST} "rm -rf ~/sleperf*"
+
+      # Install sleperf scheduler server
+      ${SSH_GUEST} curl -k -o ~/sleperf-master.tar {{ test_dict.PACKAGES.pkgs_for_sleperf }}
+      ${SSH_GUEST} tar -xf ~/sleperf-master.tar
+      ${SSH_GUEST} cd ~/sleperf-master/SLEPerf;./installer.sh common-infra
+      ${SSH_GUEST} cd ~/sleperf-master/SLEPerf;./installer.sh scheduler-service
+
+  - steps_name: "Config grub file for guest"
+    script_instroduction: Config grub file for security and mitigations setting.
+    script_name: install_pkgs
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      grubfile=/boot/grub2/grub.cfg
+      default_grubfile=/etc/default/grub
+      grubitem='GRUB_CMDLINE_LINUX_DEFAULT='
+
+      # Disable qaset to avoid running baremetal performance run
+      if ! ${SSH_GUEST} grep -q 'qaset=off' "${default_grubfile}"" > /dev/null;then
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 qaset=off/' "${default_grubfile}"
+      fi
+
+      # Set mitigations to auto as default
+      if ${SSH_GUEST} grep 'mitigations=' "${default_grubfile}" > /dev/null;then
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/mitigations=.* /mitigations=auto /' "${default_grubfile}"
+      else
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 mitigations=auto/' "${default_grubfile}"
+      fi
+
+      # Security setting 
+      if ${SSH_GUEST} grep 'selinux=' "${default_grubfile}" > /dev/null;then
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/selinux=.* /selinux=1 /' "${default_grubfile}"
+      else
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 selinux=1/' "${default_grubfile}"
+      fi
+
+      if ! ${SSH_GUEST} grep 'security=selinux' "${default_grubfile}" > /dev/null;then
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/security=.* /security=selinux /' "${default_grubfile}"
+      else
+        ${SSH_GUEST} sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 security=selinux/' "${default_grubfile}"
+      fi
+
+      ${SSH_GUEST} grub2-mkconfig -o ${grubfile}
+  - steps_name: "Config security and OS upgrade for guest"
+    script_instroduction: The step is to set security configuratioin file and kernel parameters.
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      vm_name="vm-kvm-{ host }"
+      # Set enforce selinux as default
+
+      selinuxconfig=/etc/selinux/config
+
+      if ${SSH_GUEST} "[ -f ${selinuxconfig} ]";then
+        ${SSH_GUEST} sed -i 's/SELINUX=permissive/SELINUX=enforcing/g' ${selinuxconfig}
+      fi
+
+      # Add policy for benchmark
+      sepolicy_file='/usr/share/qa/qaset/misc/sleperf_container.cil'
+      if ${SSH_GUEST} "[ -f ${sepolicy_file} ]";then
+        ${SSH_GUEST} semanage -i ${sepolicy_file}
+      fi
+
+      # Update host
+      ${SSH_GUEST} zypper -n up -l
+
+      # Activate the all changes
+      virsh destroy ${vm_name}
+      sleep 5
+      if virsh list --all | grep -E "${vm_name}.*shut off" > /dev/null;then
+        virsh start ${vm_name}
+      fi
+  - steps_name: "Security setting for files inside guest"
+    script_instroduction: The step is to set security to files.
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      vm_name="vm-kvm-{ host }"
+
+      # Manager and restore selinux fs for sleperf scheduler
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t var_log_t "/var/log/qa(/.*)?"
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t var_log_t "/var/log/qaset(/.*)?"
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t usr_t "/usr/share/qa(/.*)?"
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t bin_t "/usr/share/qa/qaset/bin(/.*)?"
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t bin_t "/usr/share/qa/perfcom/perfcmd.py"
+      ${SSH_GUEST} semanage fcontext -a -s system_u -t systemd_unit_file_t "/usr/lib/systemd/system/qaperf.service"
+
+      ${SSH_GUEST} restorecon -FR -v /var/log/qa
+      ${SSH_GUEST} restorecon -FR -v /var/log/qaset
+      ${SSH_GUEST} restorecon -FR -v /usr/share/qa
+      ${SSH_GUEST} restorecon -FR -v /usr/lib/systemd/system/qaperf.service
+      ${SSH_GUEST} restorecon -FR -v /etc/systemd/system/multi-user.target.wants/qaperf.service
+  - steps_name: "Disable snapper packages and servers and Set hostname "
+    script_instroduction: Pull and unpack virtualization benchmark master.
+    script_name: dis_snapper_and_set_hostname.sh
+    script_content: |
+      #!/bin/bash
+      TMP_IP_FILE="/kvm/guest_interact_folder/vm_guest_ip"
+      SSH_GUEST="ssh -n root@$(cat ${TMP_IP_FILE}) "
+
+      vm_name="vm-kvm-{ host }"
+
+      {% include 'workflow/macros.j2' %}
+      {% if main_ver >= 16 %}
+
+        # Remove snapper packages
+        ${SSH_GUEST} zypper -i -n rm -y snapper-zypp-plugin
+        ${SSH_GUEST} zypper -i -n rm -y zypper-search-packages-plugin
+
+        # Disable and mask snapper timer, snapper boot, and snapper cleanup
+        ${SSH_GUEST} systemctl disable --now snapper-timeline.timer
+        ${SSH_GUEST} systemctl mask snapper-timeline.timer
+
+        ${SSH_GUEST} systemctl disable --now snapper-boot.timer
+        ${SSH_GUEST} systemctl mask snapper-boot.timer
+
+        ${SSH_GUEST} systemctl disable --now snapper-cleanup.timer
+        ${SSH_GUEST} systemctl mask snapper-cleanup.timer
+
+        # Set hostname for VM (Quoted to ensure redirection executes in the guest over SSH)
+        ${SSH_GUEST} "echo '[main]' > /etc/NetworkManager/NetworkManager.conf"
+        ${SSH_GUEST} "echo 'hostname-mode=none' >> /etc/NetworkManager/NetworkManager.conf"
+
+        ${SSH_GUEST} hostnamectl set-hostname ${vm_name}
+        ${SSH_GUEST} systemctl restart NetworkManager.service
+      {% endif %}
+  - steps_name: "Trigger cpucompute benchmark cases"
+    script_name: run_bench.sh
+    script_content: |
+      #!/bin/bash
+      # Step 3: Trigger benchmark run
+      cd sleperf-master/
+      ./sleperf --test cpucompute --runs 3
+      netperf -H vh018 -l 60 -t TCP_STREAM -- -m 1024
+    script_instroduction: Launch virtualization CPU and net benchmarks.

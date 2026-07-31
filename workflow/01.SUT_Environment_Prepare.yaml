@@ -6,13 +6,77 @@ workflow_steps:
     script_content: |
       #!/bin/bash
       # Step 1: SUT Environment Prepare
+      # Add repositorys
+
+      zypper ar {{ test_dict.PRODUCT.qa_repo_map[product_ver] }} qa_head
+      {% if test_dict.PRODUCT.prd_migration_url_map[product_ver] is defined %}
+        {% for migr_url in test_dict.PRODUCT.prd_migration_url_map[product_ver].ZH %}
+      zypper lr -d | grep {{ migr_url }} || zypper ar -f {{ migr_url }} update_${echo $RANDOM$RANDOM | cut -c1-10}
+        {% endfor %}
+      {% endif %}
+    script_instroduction: The step is to add qa and migration update repository.
+  - steps_name: "Add packages and patterns"
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare
       # Installing performance-related and tuning packages
+
+      # Install packages
       {% for pkg in test_dict.PACKAGES.pkgs_for_prepare %}
       zypper install -y {{ pkg }}
       {% endfor %}
-    script_instroduction: The step is to install packages for virtualization and host monitor.
+
+      # Install patterns
+      {% for pattern in test_dict.PACKAGES.pattern_for_prepare %}
+      zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+
+      # Install patterns of virtualization needed
+      {% for pattern in test_dict.PACKAGES.pkgs_for_hypervisor.kvm %}
+      zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+    script_instroduction: The step is to install packages and pattern for virtualization performance needed.
+  - steps_name: "Install sleperf scheduler server"
+    script_instroduction: The step is to install sleperf server (QE performance structure).
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare
+      # Installing sleperf scheduler server for performance test need
+
+      # Install packages of virtualization performance needed
+      {% for pkg in test_dict.PACKAGES.pkgs_for_perf %}
+      zypper install -y {{ pkg }}
+      {% endfor %}
+
+      # Install patterns of virtualization performance needed
+      {% for pattern in test_dict.PACKAGES.pattern_for_perf %}
+      zypper install -y -t pattern {{ pattern }}
+      {% endfor %}
+
+      # UnInstall existent sleperf scheduler server
+      if [ -f ~/sleperf-master/SLEPerf/common-infra/uninstaller.sh ];then
+        cd ~/sleperf-master/SLEPerf/common-infra;./uninstaller.sh
+      fi
+
+      if [ -f ~/sleperf-master/SLEPerf/scheduler-service/uninstaller.sh ];then
+        cd ~/sleperf-master/SLEPerf/common-infra;./uninstaller.sh
+      fi
+
+      rm -rf ~/sleperf*
+
+      # Install sleperf scheduler server
+      curl -k -o ~/sleperf-master.tar {{ test_dict.PACKAGES.pkgs_for_sleperf }}
+      tar -xf ~/sleperf-master.tar
+      cd ~/sleperf-master/SLEPerf;./installer.sh common-infra
+      cd ~/sleperf-master/SLEPerf;./installer.sh scheduler-service
+
   - steps_name: "Config grub file"
-    script_name: install_pkgs.sh
+    script_instroduction: Config grub file for security and mitigations setting.
+    script_name: install_pkgs
     script_content: |
       #!/bin/bash
       # Step 1: SUT Environment Prepare
@@ -22,30 +86,103 @@ workflow_steps:
       grubitem='GRUB_CMDLINE_LINUX_DEFAULT='
 
       # Disable qaset to avoid running baremetal performance run
-      if ! grep 'qaset=off' $${default_grubfile} > /dev/null;then
-        sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 qaset=off/' $${default_grubfile}
+      if ! grep 'qaset=off' ${default_grubfile} > /dev/null;then
+        sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 qaset=off/' ${default_grubfile}
       fi
 
       # Set mitigations to auto as default
-      if grep 'mitigations=' $${default_grubfile} > /dev/null;then
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/mitigations=.* /mitigations=auto /' $${default_grubfile}
+      if grep 'mitigations=' ${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/mitigations=.* /mitigations=auto /' ${default_grubfile}
       else
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 mitigations=auto/' $${default_grubfile}
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 mitigations=auto/' ${default_grubfile}
       fi
 
       # Security setting 
-      if grep 'selinux=' $${default_grubfile} > /dev/null;then
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/selinux=.* /selinux=1 /' $${default_grubfile}
+      if grep 'selinux=' ${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/selinux=.* /selinux=1 /' ${default_grubfile}
       else
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 selinux=1/' $${default_grubfile}
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 selinux=1/' ${default_grubfile}
       fi
 
-      if ! grep 'security=selinux' $${default_grubfile} > /dev/null;then
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/security=.* /security=selinux /' $${default_grubfile}
+      if ! grep 'security=selinux' ${default_grubfile} > /dev/null;then
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/security=.* /security=selinux /' ${default_grubfile}
       else
-         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 security=selinux/' $${default_grubfile}
+         sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/\("[^"]*"\)/\1 security=selinux/' ${default_grubfile}
       fi
 
-      grub2-mkconfig -o $${grubfile}
-    script_instroduction: The step is to install packages for virtualization and host monitor.
+      grub2-mkconfig -o ${grubfile}
+  - steps_name: "Config security and OS upgrade"
+    script_instroduction: The step is to set security configuratioin file and kernel parameters.
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare
+      # Set enforce selinux as default
 
+      selinuxconfig=/etc/selinux/config
+
+      if [ -f ${selinuxconfig} ];then
+        sed -i 's/SELINUX=permissive/SELINUX=enforcing/g' ${selinuxconfig}
+      fi
+
+      # Add policy for benchmark
+      sepolicy_file='/usr/share/qa/qaset/misc/sleperf_container.cil'
+      if [ -f ${sepolicy_file} ];then
+        semanage -i ${sepolicy_file}
+      fi
+
+      # Update host
+      zypper -n up -l
+
+      # Activate the all changes
+      reboot
+  - steps_name: "Security setting for files"
+    script_instroduction: The step is to set security to files.
+    script_name: add_repos.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare 
+
+      # Manager and restore selinux fs for sleperf scheduler
+      semanage fcontext -a -s system_u -t var_log_t "/var/log/qa(/.*)?"
+      semanage fcontext -a -s system_u -t var_log_t "/var/log/qaset(/.*)?"
+      semanage fcontext -a -s system_u -t usr_t "/usr/share/qa(/.*)?"
+      semanage fcontext -a -s system_u -t bin_t "/usr/share/qa/qaset/bin(/.*)?"
+      semanage fcontext -a -s system_u -t bin_t "/usr/share/qa/perfcom/perfcmd.py"
+      semanage fcontext -a -s system_u -t systemd_unit_file_t "/usr/lib/systemd/system/qaperf.service"
+
+      restorecon -FR -v /var/log/qa
+      restorecon -FR -v /var/log/qaset
+      restorecon -FR -v /usr/share/qa
+      restorecon -FR -v /usr/lib/systemd/system/qaperf.service
+      restorecon -FR -v /etc/systemd/system/multi-user.target.wants/qaperf.service
+  - steps_name: "Create bridge for virtualization guest"
+    script_instroduction: The step is to create bridge.
+    script_name: create_bridge.sh
+    script_content: |
+      #!/bin/bash
+      # Step 1: SUT Environment Prepare 
+
+      # Set variables for bridge creation
+      host_ip_addr={{ test_dict.PHYSICAL_MACHINE.phy_machine_ip_address[host] }}
+      interface_name=`ip addr | awk -v ip="${host_ip_addr}" '$2 ~ ip {print $NF}'`
+      mac_addr=`ip link show ${interface_name} | awk '/link\/ether/ {print $2}'`
+
+      bridge_name="br0"
+      bridge_port_name="${bridge_name}-perf-port1"
+
+      # Create bridge
+      if ! `ip route | grep "default.*${bridge_name}.*${host_ip_addr} > /dev/null`;then
+        nmcli connection down ${bridge_name}
+        sleep(5)
+        nmcli connection delete ${bridge_name}
+        nmcli connection delete ${bridge_port_name}
+
+        nmcli connection add type bridge con-name ${bridge_name} ifname ${bridge_name}
+        nmcli connection add type ethernet slave-type bridge con-name ${bridge_port_name} ifname ${interface_name} master ${bridge_name}
+        nmcli connection modify ${bridge_name} bridge.stp no connection.autoconnect-slaves 1 
+        nmcli connection modify ${bridge_name} ethernet.cloned-mac-address ${mac_addr}
+        sleep(3)
+        nmcli con up ${bridge_name}
+        sleep(5)
+      fi

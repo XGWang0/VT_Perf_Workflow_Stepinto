@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const terminalContainer = document.getElementById('terminal');
   const closeBtn = document.getElementById('close-btn');
   const connectBtn = document.getElementById('connect-btn');
+  const sessionToggleBtn = document.getElementById('session-toggle-btn');
   const errorMessage = document.getElementById('error-message');
-  const sessionLabel = document.getElementById('session-label');
   const terminalAnchor = document.getElementById('terminal-anchor');
   const mainContent = document.querySelector('.main-content');
   
@@ -19,6 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const productSelect = document.getElementById('product');
   const milestoneSelect = document.getElementById('milestone');
   const buildVerInput = document.getElementById('build-ver');
+  const buildVerGroup = document.getElementById('build-ver-group');
+  const productImgGroup = document.getElementById('product-img-group');
+  const productImgInput = document.getElementById('product-img');
+
+  // GUEST EXTENSIONS references
+  const guestProductSelect = document.getElementById('guest-product');
+  const guestMilestoneSelect = document.getElementById('guest-milestone');
+  const guestBuildVerInput = document.getElementById('guest-build-ver');
+  const guestBuildVerGroup = document.getElementById('guest-build-ver-group');
+  const guestProductImgGroup = document.getElementById('guest-product-img-group');
+  const guestProductImgInput = document.getElementById('guest-product-img');
 
   // New Merge Product Config button references (Modal removed as requested)
   const mergeConfigBtn = document.getElementById('merge-config-btn');
@@ -37,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Dual Status Bars references
   const connectionStatus = document.getElementById('connection-status');
   const topStatusText = connectionStatus.querySelector('.status-text');
-  const lowerStatusIndicator = document.getElementById('lower-status-indicator');
 
   let ws = null;
   let term = null;
@@ -62,6 +72,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Default Focus
   hostInput.focus();
+
+  // Update visibility of form parameters based on Product Release selection (SLES 16+ shows Build Version, SLES 15 shows Product Image Url)
+  function updateProductFormVisibility() {
+    const val = productSelect.value;
+    const match = val.match(/sles-?(\d+)/i);
+    const versionNum = match ? parseInt(match[1], 10) : 0;
+    
+    if (versionNum >= 16) {
+      buildVerGroup.classList.remove('hidden');
+      buildVerInput.required = true;
+      
+      productImgGroup.classList.add('hidden');
+      productImgInput.required = false;
+    } else {
+      buildVerGroup.classList.add('hidden');
+      buildVerInput.required = false;
+      
+      productImgGroup.classList.remove('hidden');
+      productImgInput.required = true;
+    }
+  }
+
+  productSelect.addEventListener('change', updateProductFormVisibility);
+  updateProductFormVisibility(); // Initialize on page load
+
+  // Update visibility of Guest form parameters based on Guest Product Release selection (SLES 16+ shows Build Version, SLES 15 shows Product Image Url)
+  function updateGuestProductFormVisibility() {
+    const val = guestProductSelect.value;
+    const match = val.match(/sles-?(\d+)/i);
+    const versionNum = match ? parseInt(match[1], 10) : 0;
+    
+    if (versionNum >= 16) {
+      guestBuildVerGroup.classList.remove('hidden');
+      guestBuildVerInput.required = true;
+      
+      guestProductImgGroup.classList.add('hidden');
+      guestProductImgInput.required = false;
+    } else {
+      guestBuildVerGroup.classList.add('hidden');
+      guestBuildVerInput.required = false;
+      
+      guestProductImgGroup.classList.remove('hidden');
+      guestProductImgInput.required = true;
+    }
+  }
+
+  guestProductSelect.addEventListener('change', updateGuestProductFormVisibility);
+  updateGuestProductFormVisibility(); // Initialize on page load
 
   // Programmatically guarantee the Run Script button starts disabled on page load
   runScriptBtn.disabled = true;
@@ -171,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
                       <h4>${step.steps_name}</h4>
                       <p>${step.script_instroduction || 'Deploy and run virtualization performance tasks.'}</p>
                     </div>
-                    <div class="step-badge">${step.script_name || 'script.sh'}</div>
                   `;
 
                   // Sub-step Click Event: Select Level 2 step!
@@ -288,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
                   <h4>${step.steps_name}</h4>
                   <p>${step.script_instroduction || 'Deploy and run virtualization performance tasks.'}</p>
                 </div>
-                <div class="step-badge">${step.script_name || 'script.sh'}</div>
               `;
 
               stepCard.addEventListener('click', (e) => {
@@ -334,12 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
     topStatusText.textContent = text;
   }
 
-  // Update Lower Status Bar Indicator (Console Header)
-  function updateLowerStatus(state, text) {
-    lowerStatusIndicator.className = `status-indicator ${state}`;
-    sessionLabel.textContent = text;
-  }
-
   // Toggle Password Visibility Listener
   showPasswordCb.addEventListener('change', () => {
     if (showPasswordCb.checked) {
@@ -356,16 +406,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const host = hostInput.value.trim();
     const product = productSelect.value;
     const milestone = milestoneSelect.value;
-    const buildVer = buildVerInput.value.trim();
+    
+    // Host calculations
+    const match = product.match(/sles-?(\d+)/i);
+    const versionNum = match ? parseInt(match[1], 10) : 0;
+    let buildVer = "";
+    let productImg = "";
+
+    // Guest calculations
+    const guestProduct = guestProductSelect.value;
+    const guestMilestone = guestMilestoneSelect.value;
+    const guestMatch = guestProduct.match(/sles-?(\d+)/i);
+    const guestVersionNum = guestMatch ? parseInt(guestMatch[1], 10) : 0;
+    let guestBuildVer = "";
+    let guestProductImg = "";
 
     if (!host) {
       showError('Please configure SUT Target Hostname first.');
       return;
     }
 
-    if (!product || !milestone || !buildVer) {
-      showError('Please configure product details first.');
+    if (!product || !milestone) {
+      showError('Please configure SUT host product details first.');
       return;
+    }
+    
+    if (!guestProduct || !guestMilestone) {
+      showError('Please configure Guest VM product details first.');
+      return;
+    }
+    
+    // Host Validation
+    if (versionNum >= 16) {
+      buildVer = buildVerInput.value.trim();
+      if (!buildVer) {
+        showError('Please configure Host Build Version first.');
+        return;
+      }
+    } else {
+      productImg = productImgInput.value.trim();
+      if (!productImg) {
+        showError('Please configure Host Product Image Url first.');
+        return;
+      }
+    }
+
+    // Guest Validation
+    if (guestVersionNum >= 16) {
+      guestBuildVer = guestBuildVerInput.value.trim();
+      if (!guestBuildVer) {
+        showError('Please configure Guest Build Version first.');
+        return;
+      }
+    } else {
+      guestProductImg = guestProductImgInput.value.trim();
+      if (!guestProductImg) {
+        showError('Please configure Guest Product Image Url first.');
+        return;
+      }
     }
 
     // Set button loading state
@@ -384,6 +482,13 @@ document.addEventListener('DOMContentLoaded', () => {
         product: product,
         milestone: milestone,
         build_ver: buildVer,
+        product_img: productImg,
+        
+        guest_product: guestProduct,
+        guest_milestone: guestMilestone,
+        guest_build_ver: guestBuildVer,
+        guest_product_img: guestProductImg,
+        
         session_id: sessionId // <--- CONCURRENCY SHIELD: Isolate multiple users!
       })
     })
@@ -573,9 +678,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Handle Form Submission (Clicking SSH Connect -> silent backend handshake, NO terminal wrapper open yet!)
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
+  // Set the session control button to the Connected (Disconnect) state
+  function setSessionToConnected() {
+    sessionToggleBtn.disabled = false;
+    sessionToggleBtn.title = "Disconnect SSH Session";
+    sessionToggleBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="disconnect-icon"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+      <span>Disconnect</span>
+    `;
+    sessionToggleBtn.className = "btn btn-session-connected";
+    sessionToggleBtn.dataset.state = "connected";
+  }
+
+  // Set the session control button to the Disconnected (Reconnect) state
+  function setSessionToDisconnected() {
+    sessionToggleBtn.disabled = false;
+    sessionToggleBtn.title = "Reconnect SSH Session";
+    sessionToggleBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="reconnect-icon"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <span>Reconnect</span>
+    `;
+    sessionToggleBtn.className = "btn btn-session-disconnected";
+    sessionToggleBtn.dataset.state = "disconnected";
+  }
+
+  // Shared function to handle WebSocket and SUT SSH handshake
+  function performConnection(isReconnect = false) {
     clearError();
 
     const host = hostInput.value.trim();
@@ -593,13 +721,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!host || !username || !password || !product || !milestone || !buildVerRaw) {
       showError('Please configure SUT details and product metrics.');
+      if (isReconnect) {
+        setSessionToDisconnected();
+      }
       return;
     }
 
     // Set UI to loading/disabled state (connecting...)
     setLoading(true, false);
     updateTopStatus('connecting', 'Connecting...');
-    updateLowerStatus('connecting', 'connecting...');
+
+    if (isReconnect) {
+      // If we are reconnecting, let's write a status message onto the terminal
+      if (term) {
+        term.write('\r\n\x1b[33m[System] Reconnecting to SUT...\x1b[0m\r\n');
+      }
+      // Also temporarily update the sessionToggleBtn to "Connecting..."
+      sessionToggleBtn.disabled = true;
+      sessionToggleBtn.title = "Connecting to SUT...";
+      sessionToggleBtn.innerHTML = `
+        <div class="spinner" style="width: 0.85rem; height: 0.85rem; border-width: 1.5px; border-top-color: var(--warning); margin-right: 0.25rem;"></div>
+        <span>Connecting...</span>
+      `;
+    }
 
     // Connect to local WebSocket proxy
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -621,8 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
         port,
         username,
         password,
-        cols: 80, // Default cols/rows for silent buffering
-        rows: 24,
+        cols: term ? term.cols : 80, // Default cols/rows for silent buffering
+        rows: term ? term.rows : 24,
         product,
         milestone,
         buildVer
@@ -640,8 +784,18 @@ document.addEventListener('DOMContentLoaded', () => {
           // 2. Set Top Status: glowing green and 'Connected: username@host'
           updateTopStatus('connected', `Connected: ${username}@${host}`);
 
-          // 3. Set Lower Status (below): connected
-          updateLowerStatus('connected', 'connected');
+          // Set session control button to Connected state
+          setSessionToConnected();
+
+          // If reconnect is successful and terminal is open, make sure we fit and notify backend of size
+          if (term && fitAddon) {
+            fitAddon.fit();
+            ws.send(JSON.stringify({
+              action: 'resize',
+              cols: term.cols,
+              rows: term.rows
+            }));
+          }
 
         } else if (msg.action === 'data') {
           if (term) {
@@ -686,6 +840,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       handleDisconnectUI();
     };
+  }
+
+  // Handle Form Submission (Clicking SSH Connect -> silent backend handshake, NO terminal wrapper open yet!)
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    performConnection(false);
   });
 
   // Handle RUN Script Button Action (OPENS the connection window directly inside the script-column!)
@@ -715,14 +875,55 @@ document.addEventListener('DOMContentLoaded', () => {
           stdoutBuffer = ''; // Clear buffer
         }
 
+        // Stateful buffer to capture and filter out Cursor Position Report (CPR) escape sequences
+        // (which might be sent by xterm.js character-by-character or split across packets)
+        let cprBuffer = "";
+
         // Forward terminal keyboard strokes to proxy websocket
         term.onData((data) => {
           if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              action: 'data',
-              data: data
-            }));
-            scrollPageToBottom();
+            let output = "";
+            for (let i = 0; i < data.length; i++) {
+              const char = data[i];
+              if (cprBuffer === "") {
+                if (char === "\x1b") {
+                  cprBuffer = "\x1b";
+                } else {
+                  output += char;
+                }
+              } else if (cprBuffer === "\x1b") {
+                if (char === "[") {
+                  cprBuffer = "\x1b[";
+                } else {
+                  output += cprBuffer + char;
+                  cprBuffer = "";
+                }
+              } else {
+                // cprBuffer starts with "\x1b["
+                if (/^[0-9;]$/.test(char)) {
+                  cprBuffer += char;
+                } else if (char === "R") {
+                  // Validate if it is a genuine Cursor Position Report (e.g., \x1b[30;1R or \x1b[30R)
+                  if (/^\x1b\[\d*(?:;\d+)?$/.test(cprBuffer)) {
+                    console.log("Filtered out split/chunked ANSI cursor position report:", JSON.stringify(cprBuffer + "R"));
+                    cprBuffer = ""; // Swallowed!
+                  } else {
+                    output += cprBuffer + "R";
+                    cprBuffer = "";
+                  }
+                } else {
+                  output += cprBuffer + char;
+                  cprBuffer = "";
+                }
+              }
+            }
+            if (output !== "") {
+              ws.send(JSON.stringify({
+                action: 'data',
+                data: output
+              }));
+              scrollPageToBottom();
+            }
           }
         });
       }
@@ -766,6 +967,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Deep UI cleanup to hide terminal panel completely
     cleanupUI();
+  });
+
+  // Handle Session Toggle Button (Disconnect / Reconnect)
+  sessionToggleBtn.addEventListener('click', () => {
+    if (sessionToggleBtn.dataset.state === "connected") {
+      if (ws) {
+        ws.close();
+      }
+    } else {
+      performConnection(true);
+    }
   });
 
   // Handle window resizing
@@ -847,12 +1059,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Top Status: Disconnected
     updateTopStatus('disconnected', 'Disconnected');
 
-    // Lower Status: connect broken! (glowing red)
-    updateLowerStatus('disconnected', 'connect broken');
-
     if (term) {
       term.write('\r\n\x1b[31m[Status] Connection broken. Terminal session terminated.\x1b[0m\r\n');
     }
+
+    // Set toggle button to Reconnect state!
+    setSessionToDisconnected();
   }
 
   // Deep cleanup called ONLY on close button click to completely wipe state and hide terminal panel
@@ -873,7 +1085,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset statuses
     updateTopStatus('disconnected', 'Disconnected');
-    updateLowerStatus('disconnected', 'disconnected');
+
+    // Reset toggle button back to Disconnected state
+    setSessionToDisconnected();
 
     if (term) {
       term.dispose();

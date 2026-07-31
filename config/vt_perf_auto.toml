@@ -4,7 +4,7 @@ msgqueue_base_url = "http://10.200.134.100:8889/api/msg_queue/v1/"
 
 [PACKAGES]
 pkgs_for_python = []
-pkgs_for_prepare = ["xfsprogs", "parted", "sshpass", "libvirt-client", "sysstat", "nfs-client", "procps", ]
+pkgs_for_prepare = ["xfsprogs", "parted", "sshpass", "libvirt-client", "sysstat", "nfs-client", "procps", "expect"]
 pattern_for_prepare = ["selinux"]
 # pkgs_for_sleperf is used to install scheduler service on SUT
 #pkgs_for_sleperf = "http://10.200.134.67/repo/sleperf.tar"
@@ -341,15 +341,15 @@ kernel_param = 'YAST_SKIP_XML_VALIDATION=1 console=ttyS0,115200n8 install={guest
 install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
 qemu_commandline = ''
 extra_parameter = ''
-register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+register_url = 'inst.register_url=http://all-{guest_build_num}.scc-proxy.suse.asia/'
 
 [VIRTUAL_MACHINE.vir_machine_cfg.vm.install.current_product]
-location_param = '{guest_prd_url[startup_repo]},kernel=boot/x86_64/loader/linux,initrd=boot/x86_64/loader/initrd'
+location_param = '{guest_prd_url.startup_repo},kernel=boot/x86_64/loader/linux,initrd=boot/x86_64/loader/initrd'
 kernel_param = 'console=ttyS0 linuxrc.log=/dev/ttyS0 linuxrc.core=/dev/ttyS0,115200  live.password={password}  agama.install_url={guest_prd_url[install_repo]} root=live:{guest_prd_url[install_iso]}  inst.auto={auto_yast} inst.finish=poweroff '
 install_extra_parameter = ' --boot loader.secure=no --boot loader=/usr/share/qemu/ovmf-x86_64-4m.bin,loader.readonly=yes '
 qemu_commandline = ''
 extra_parameter = ''
-register_url = 'inst.register_url=http://all-{build_num}.scc-proxy.suse.asia/'
+register_url = 'inst.register_url=http://all-{guest_build_num}.scc-proxy.suse.asia/'
 
 # Array of tables for disks
 [[VIRTUAL_MACHINE.vir_machine_cfg.vm.devices.disks]]

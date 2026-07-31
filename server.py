@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from jinja2 import Template
 import paramiko
+import re
 
 app = FastAPI()
 
@@ -18,7 +19,40 @@ class ProductMergeRequest(BaseModel):
     product: str
     milestone: str
     build_ver: str
+    product_img: str = ""
+    
+    guest_product: str
+    guest_milestone: str
+    guest_build_ver: str
+    guest_product_img: str = ""
+    
     session_id: str
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for k, v in self.items():
+            if isinstance(v, dict):
+                self[k] = AttrDict(v)
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        raise AttributeError(f"No attribute {name}")
+    def __str__(self):
+        # Default string representation: use "vm" value if present, otherwise first value, or empty string.
+        if "vm" in self:
+            return str(self["vm"])
+        return next(iter(self.values())) if self else ""
+    def __format__(self, format_spec):
+        return self.__str__()
+
+class AttrStr(str):
+    def __getattr__(self, name):
+        return AttrStr(self)
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return AttrStr(self)
+        return super().__getitem__(key)
 
 # Helper function to recursively deep merge dictionary overrides
 def deep_merge(dict1, dict2):
@@ -46,25 +80,93 @@ def flatten_dict(d, parent_key='', sep='_'):
             items.append((new_key, str(v)))
     return dict(items)
 
-def resolve_placeholders(item, context):
-    """
-    Recursively replaces {placeholder} tags inside string values with context values.
-    Preserves unmatched braces using a SafeFormatter dictionary fallback.
-    """
+class LazyFormatterMap(dict):
+    def __init__(self, context, local_scope, resolve_func):
+        self.context = context
+        self.local_scope = local_scope
+        self.resolve_func = resolve_func
+        self.cache = {}
+        
+    def __getitem__(self, key):
+        if key in self.cache:
+            return self.cache[key]
+            
+        val = None
+        if key in self.local_scope:
+            val = self.local_scope[key]
+        elif key in self.context:
+            val = self.context[key]
+            
+        if val is not None:
+            if isinstance(val, str) and "{" in val and "}" in val:
+                # Prevent infinite recursion if a key references itself
+                sub_local = dict(self.local_scope)
+                sub_local.pop(key, None)
+                resolved = self.resolve_func(val, self.context, sub_local)
+                self.cache[key] = resolved
+                return resolved
+            else:
+                self.cache[key] = val
+                return val
+                
+        return f"{{{key}}}"
+        
+    def __missing__(self, key):
+        return f"{{{key}}}"
+
+def resolve_nested_braces(text, context, local_scope=None):
+    if not isinstance(text, str) or "{" not in text or "}" not in text:
+        return text
+        
+    formatter_map = LazyFormatterMap(context, local_scope or {}, resolve_placeholders)
+    
+    limit = 100 # prevent infinite loops
+    while limit > 0:
+        # Find the innermost braces block (contains no other '{' or '}')
+        match = re.search(r"\{([^{}]+)\}", text)
+        if not match:
+            break
+            
+        full_placeholder = match.group(0)
+        inner_content = match.group(1).strip()
+        
+        temp_str = f"{{{inner_content}}}"
+        try:
+            resolved_val = temp_str.format_map(formatter_map)
+        except Exception:
+            resolved_val = full_placeholder
+            
+        if resolved_val == temp_str:
+            # Hide braces to avoid infinite loop
+            text = text[:match.start()] + f"__LEFT_BRACE__{inner_content}__RIGHT_BRACE__" + text[match.end():]
+        else:
+            text = text[:match.start()] + str(resolved_val) + text[match.end():]
+            
+        limit -= 1
+        
+    text = text.replace("__LEFT_BRACE__", "{").replace("__RIGHT_BRACE__", "}")
+    return text
+
+def resolve_placeholders(item, context, local_scope=None):
+    if local_scope is None:
+        local_scope = {}
+        
     if isinstance(item, dict):
-        return {k: resolve_placeholders(v, context) for k, v in item.items()}
+        new_local_scope = dict(local_scope)
+        for k, v in item.items():
+            if isinstance(v, (str, int, float, bool)):
+                new_local_scope[k] = str(v)
+                
+        resolved_dict = {}
+        for k, v in item.items():
+            resolved_dict[k] = resolve_placeholders(v, context, new_local_scope)
+        return resolved_dict
+        
     elif isinstance(item, list):
-        return [resolve_placeholders(i, context) for i in item]
+        return [resolve_placeholders(i, context, local_scope) for i in item]
+        
     elif isinstance(item, str):
-        if "{" in item and "}" in item:
-            try:
-                class SafeFormatter(dict):
-                    def __missing__(self, key):
-                        return f"{{{key}}}"
-                return item.format_map(SafeFormatter(context))
-            except Exception as err:
-                print(f"Placeholder replacement exception for '{item}': {err}")
-        return item
+        return resolve_nested_braces(item, context, local_scope)
     else:
         return item
 
@@ -75,11 +177,29 @@ session_configs = {}
 # Symmetrical fallback context used on boot/startup or if a session hasn't merged yet
 default_config_context = {}
 
-def load_default_config_context():
+def load_default_config_context(
+    hostname="ph047",
+    product_ver="sles-15-sp7",
+    milestone="GM",
+    build_ver="Build44.4",
+    build_num="44.4",
+    product_img="",
+    
+    guest_product_ver="sles-15-sp7",
+    guest_milestone="GM",
+    guest_build_ver="Build44.4",
+    guest_build_num="44.4",
+    guest_product_img=""
+):
     global default_config_context
     master_config_path = "config/vt_perf_auto.toml"
-    machine_config_path = "config/machine_config/ph047.toml"
+    machine_config_path = f"config/machine_config/{hostname}.toml"
     
+    if not os.path.exists(machine_config_path):
+        # Fall back if path does not exist
+        machine_config_path = "config/machine_config/ph047.toml"
+        hostname = "ph047"
+        
     final_config_dict = {}
     
     # 1. Parse Master TOML
@@ -97,25 +217,156 @@ def load_default_config_context():
                 machine_dict = tomllib.load(f)
             final_config_dict = deep_merge(copy.deepcopy(final_config_dict), machine_dict)
         except Exception as err:
-            print(f"Error parsing machine TOML ph047 during boot: {err}")
+            print(f"Error parsing machine TOML {hostname} during boot: {err}")
             
-    # 3. Create context mapping for {placeholder} replacement
+    # Determine Region
+    region = "ZH"
+    phy_machine = final_config_dict.get("PHYSICAL_MACHINE", {})
+    ip_map = phy_machine.get("phy_machine_ip_address", {})
+    ip_addr = ip_map.get(hostname, "")
+    if ip_addr.startswith("10.145") or ip_addr.startswith("10.146") or "perf" in hostname:
+        region = "CZ"
+        
+    # Helper to resolve product URL
+    def get_product_url(p_ver, custom_img):
+        if custom_img:
+            return AttrStr(custom_img)
+        prd_url_map = final_config_dict.get("PRODUCT", {}).get("prd_url_map", {})
+        prd_url_entry = prd_url_map.get(p_ver)
+        if isinstance(prd_url_entry, str):
+            return AttrStr(prd_url_entry)
+        elif isinstance(prd_url_entry, dict):
+            regional_entry = prd_url_entry.get(region)
+            if regional_entry:
+                return AttrStr(regional_entry) if isinstance(regional_entry, str) else AttrDict(regional_entry)
+            else:
+                first_val = next(iter(prd_url_entry.values())) if prd_url_entry else ""
+                return AttrStr(first_val) if isinstance(first_val, str) else AttrDict(first_val)
+        return ""
+
+    # Helper to resolve autoyast URL
+    def get_autoyast_url(p_ver):
+        autoyast_url_map = final_config_dict.get("VIRTUAL_MACHINE", {}).get("autoyast_url", {})
+        autoyast_entry = autoyast_url_map.get(p_ver)
+        if isinstance(autoyast_entry, str):
+            return AttrStr(autoyast_entry)
+        elif isinstance(autoyast_entry, dict):
+            return AttrDict(autoyast_entry)
+        return ""
+
+    # Calculate Host and Guest URLs
+    host_prd_url = get_product_url(product_ver, product_img)
+    guest_prd_url = get_product_url(guest_product_ver, guest_product_img)
+    auto_yast = get_autoyast_url(guest_product_ver)
+
+    # 3. Inject product info metrics
+    if "PRODUCT" not in final_config_dict:
+        final_config_dict["PRODUCT"] = {}
+        
+    final_config_dict["PRODUCT"]["prd_info"] = {
+        "product_ver": product_ver,
+        "milestone": milestone,
+        "build_ver": 'Build%s' % build_num if not build_ver.startswith('Build') else build_ver,
+        "build_num": build_num
+    }
+    
+    final_config_dict["PRODUCT"]["guest_prd_info"] = {
+        "product_ver": guest_product_ver,
+        "milestone": guest_milestone,
+        "build_ver": 'Build%s' % guest_build_num if not guest_build_ver.startswith('Build') else guest_build_ver,
+        "build_num": guest_build_num
+    }
+        
+    # Create temp context to resolve Host URLs
+    host_temp_context = {
+        "host": hostname,
+        "hostname": hostname,
+        "product_ver": product_ver,
+        "milestone": milestone,
+        "build_ver": build_ver,
+        "buildVer": build_ver,
+        "build_num": build_num,
+        "remote_ip": hostname,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
+    }
+
+    # Create temp context to resolve Guest URLs
+    guest_temp_context = {
+        "host": hostname,
+        "hostname": hostname,
+        "product_ver": guest_product_ver,
+        "milestone": guest_milestone,
+        "build_ver": guest_build_ver,
+        "buildVer": guest_build_ver,
+        "build_num": guest_build_num,
+        "remote_ip": hostname,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
+    }
+    
+    host_prd_url = resolve_placeholders(host_prd_url, host_temp_context)
+    guest_prd_url = resolve_placeholders(guest_prd_url, guest_temp_context)
+    auto_yast = resolve_placeholders(auto_yast, guest_temp_context)
+    
+    # Wrap in AttrDict/AttrStr
+    if isinstance(host_prd_url, dict):
+        host_prd_url = AttrDict(host_prd_url)
+    if isinstance(guest_prd_url, dict):
+        guest_prd_url = AttrDict(guest_prd_url)
+    if isinstance(auto_yast, dict):
+        auto_yast = AttrDict(auto_yast)
+        
+    # Inject hostname into PHYSICAL_MACHINE
+    if "PHYSICAL_MACHINE" not in final_config_dict:
+        final_config_dict["PHYSICAL_MACHINE"] = {}
+    final_config_dict["PHYSICAL_MACHINE"]["hostname"] = hostname
+
+    # Inject root-level variables for template contexts (both Python and Jinja2)
+    final_config_dict["host"] = hostname
+    final_config_dict["hostname"] = hostname
+    final_config_dict["product_ver"] = product_ver
+    final_config_dict["milestone"] = milestone
+    final_config_dict["build_ver"] = build_ver
+    final_config_dict["build_num"] = build_num
+    final_config_dict["remote_ip"] = hostname
+    
+    final_config_dict["guest_product_ver"] = guest_product_ver
+    final_config_dict["guest_milestone"] = guest_milestone
+    final_config_dict["guest_build_ver"] = guest_build_ver
+    final_config_dict["guest_build_num"] = guest_build_num
+    
+    final_config_dict["host_prd_url"] = host_prd_url
+    final_config_dict["guest_prd_url"] = guest_prd_url
+    final_config_dict["auto_yast"] = auto_yast
+
+    # 4. Create context mapping for {placeholder} replacement
     context = flatten_dict(final_config_dict)
     context.update({
-        "host": "ph047",
-        "hostname": "ph047",
-        "product": "sles-15-sp7",
-        "milestone": "GM",
-        "build_ver": "Build44.4",
-        "build_num": "44.4",
-        "remote_ip": "ph047"
+        "host": hostname,
+        "hostname": hostname,
+        "product_ver": product_ver,
+        "milestone": milestone,
+        "build_ver": build_ver,
+        "buildVer": build_ver,
+        "build_num": build_num,
+        "remote_ip": hostname,
+        
+        "guest_product_ver": guest_product_ver,
+        "guest_milestone": guest_milestone,
+        "guest_build_ver": guest_build_ver,
+        "guest_build_num": guest_build_num,
+        
+        "host_prd_url": host_prd_url,
+        "guest_prd_url": guest_prd_url,
+        "auto_yast": auto_yast,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
     })
     
-    # 4. Recursively resolve placeholders
+    # 5. Recursively resolve placeholders
     final_config_dict = resolve_placeholders(final_config_dict, context)
     
     # Store into fallback context!
-    default_config_context = final_config_dict
+    default_config_context.clear()
+    default_config_context.update(final_config_dict)
 
 # Initialize default context on server startup
 load_default_config_context()
@@ -224,7 +475,10 @@ def parse_lightweight_yaml(yaml_text):
     return result
 
 @app.get("/config/workflows")
-async def get_dynamic_workflows():
+async def get_dynamic_workflows(session_id: str = "", hostname: str = None, host: str = None):
+    h = hostname or host
+    if h:
+        load_default_config_context(hostname=h)
     workflow_dir = "workflow"
     results = []
     
@@ -254,8 +508,37 @@ async def get_dynamic_workflows():
                 
     return results
 
+def preprocess_template_includes(text):
+    """
+    Preprocess any JINJA2 {% include 'filename' %} statements in raw script content by
+    reading the file and replacing the statement inline. This allows the backend to support
+    modular macros/includes without changing the root Template compilation context.
+    """
+    pattern = r'{%\s*include\s+[\'"]([^\'"]+)[\'"]\s*%}'
+    for _ in range(5):  # Limit nested includes to prevent infinite cycles
+        matches = re.findall(pattern, text)
+        if not matches:
+            break
+        for filename in matches:
+            generic_regex = r'{%\s*include\s+[\'"]' + re.escape(filename) + r'[\'"]\s*%}'
+            if os.path.exists(filename):
+                try:
+                    with open(filename, "r", encoding="utf-8") as f:
+                        file_content = f.read()
+                    text = re.sub(generic_regex, file_content, text)
+                except Exception as e:
+                    print(f"Error reading include file {filename}: {e}")
+                    text = re.sub(generic_regex, "", text)
+            else:
+                print(f"Include file not found: {filename}")
+                text = re.sub(generic_regex, "", text)
+    return text
+
 @app.get("/config/workflows/{stage_index}")
-async def get_stage_steps(stage_index: str, session_id: str = ""):
+async def get_stage_steps(stage_index: str, session_id: str = "", hostname: str = None, host: str = None):
+    h = hostname or host
+    if h:
+        load_default_config_context(hostname=h)
     workflow_dir = "workflow"
     if os.path.exists(workflow_dir):
         # Find the specific YAML file corresponding to this stage index
@@ -277,8 +560,12 @@ async def get_stage_steps(stage_index: str, session_id: str = ""):
                     raw_content = step.get("script_content", "")
                     if raw_content:
                         try:
+                            # Pre-process nested brace placeholders first (e.g., { test_dict.PRODUCT.qa_repo_map.{ product_ver } })
+                            resolved_raw = resolve_nested_braces(raw_content, ctx)
+                            # Pre-process external template includes inline!
+                            resolved_raw = preprocess_template_includes(resolved_raw)
                             # Compile Jinja2 Template on-demand!
-                            template = Template(raw_content)
+                            template = Template(resolved_raw)
                             # Render using both "test_dict" namespace and flat variables
                             rendered_content = template.render(
                                 test_dict=ctx,
@@ -307,6 +594,10 @@ async def merge_product_config(req: ProductMergeRequest):
     master_config_path = "config/vt_perf_auto.toml"
     machine_config_path = f"config/machine_config/{req.host}.toml"
     
+    if not os.path.exists(machine_config_path):
+        machine_config_path = "config/machine_config/ph047.toml"
+        req.host = "ph047"
+        
     final_config_dict = {}
     
     # 1. Parse Master TOML
@@ -327,25 +618,155 @@ async def merge_product_config(req: ProductMergeRequest):
             print(f"Error parsing machine TOML for {req.host}: {err}")
             
     # 3. Inject product info metrics
+    product_ver = req.product
     if "PRODUCT" not in final_config_dict:
         final_config_dict["PRODUCT"] = {}
     final_config_dict["PRODUCT"]["prd_info"] = {
-        "product": req.product,
+        "product_ver": product_ver,
         "milestone": req.milestone,
-        "build_ver": 'Build%s' % req.build_ver,
+        "build_ver": 'Build%s' % req.build_ver if not req.build_ver.startswith('Build') else req.build_ver,
         "build_num": req.build_ver
     }
     
+    # Determine Region
+    region = "ZH"
+    phy_machine = final_config_dict.get("PHYSICAL_MACHINE", {})
+    ip_map = phy_machine.get("phy_machine_ip_address", {})
+    ip_addr = ip_map.get(req.host, "")
+    if ip_addr.startswith("10.145") or ip_addr.startswith("10.146") or "perf" in req.host:
+        region = "CZ"
+        
+    # Helper to resolve product URL
+    def get_product_url(p_ver, custom_img):
+        if custom_img:
+            return AttrStr(custom_img)
+        prd_url_map = final_config_dict.get("PRODUCT", {}).get("prd_url_map", {})
+        prd_url_entry = prd_url_map.get(p_ver)
+        if isinstance(prd_url_entry, str):
+            return AttrStr(prd_url_entry)
+        elif isinstance(prd_url_entry, dict):
+            regional_entry = prd_url_entry.get(region)
+            if regional_entry:
+                return AttrStr(regional_entry) if isinstance(regional_entry, str) else AttrDict(regional_entry)
+            else:
+                first_val = next(iter(prd_url_entry.values())) if prd_url_entry else ""
+                return AttrStr(first_val) if isinstance(first_val, str) else AttrDict(first_val)
+        return ""
+
+    # Helper to resolve autoyast URL
+    def get_autoyast_url(p_ver):
+        autoyast_url_map = final_config_dict.get("VIRTUAL_MACHINE", {}).get("autoyast_url", {})
+        autoyast_entry = autoyast_url_map.get(p_ver)
+        if isinstance(autoyast_entry, str):
+            return AttrStr(autoyast_entry)
+        elif isinstance(autoyast_entry, dict):
+            return AttrDict(autoyast_entry)
+        return ""
+
+    product_ver = req.product
+    guest_product_ver = req.guest_product
+
+    # Calculate Host and Guest URLs
+    host_prd_url = get_product_url(product_ver, req.product_img)
+    guest_prd_url = get_product_url(guest_product_ver, req.guest_product_img)
+    auto_yast = get_autoyast_url(guest_product_ver)
+
+    # 3. Inject product info metrics
+    if "PRODUCT" not in final_config_dict:
+        final_config_dict["PRODUCT"] = {}
+        
+    final_config_dict["PRODUCT"]["prd_info"] = {
+        "product_ver": product_ver,
+        "milestone": req.milestone,
+        "build_ver": 'Build%s' % req.build_ver if not req.build_ver.startswith('Build') else req.build_ver,
+        "build_num": req.build_ver
+    }
+    
+    final_config_dict["PRODUCT"]["guest_prd_info"] = {
+        "product_ver": guest_product_ver,
+        "milestone": req.guest_milestone,
+        "build_ver": 'Build%s' % req.guest_build_ver if not req.guest_build_ver.startswith('Build') else req.guest_build_ver,
+        "build_num": req.guest_build_ver
+    }
+        
+    # Create temp context to resolve Host URLs
+    host_temp_context = {
+        "host": req.host,
+        "hostname": req.host,
+        "product_ver": product_ver,
+        "milestone": req.milestone,
+        "build_ver": req.build_ver,
+        "buildVer": req.build_ver,
+        "build_num": req.build_ver,
+        "remote_ip": req.host,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
+    }
+
+    # Create temp context to resolve Guest URLs
+    guest_temp_context = {
+        "host": req.host,
+        "hostname": req.host,
+        "product_ver": guest_product_ver,
+        "milestone": req.guest_milestone,
+        "build_ver": req.guest_build_ver,
+        "buildVer": req.guest_build_ver,
+        "build_num": req.guest_build_ver,
+        "remote_ip": req.host,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
+    }
+    
+    host_prd_url = resolve_placeholders(host_prd_url, host_temp_context)
+    guest_prd_url = resolve_placeholders(guest_prd_url, guest_temp_context)
+    auto_yast = resolve_placeholders(auto_yast, guest_temp_context)
+    auto_yast = resolve_placeholders(auto_yast, guest_temp_context)
+    
+    # Wrap in AttrDict/AttrStr
+    if isinstance(host_prd_url, dict):
+        host_prd_url = AttrDict(host_prd_url)
+    if isinstance(guest_prd_url, dict):
+        guest_prd_url = AttrDict(guest_prd_url)
+    if isinstance(auto_yast, dict):
+        auto_yast = AttrDict(auto_yast)
+        
+    # Inject root-level variables for template contexts (both Python and Jinja2)
+    final_config_dict["host"] = req.host
+    final_config_dict["hostname"] = req.host
+    final_config_dict["product_ver"] = product_ver
+    final_config_dict["milestone"] = req.milestone
+    final_config_dict["build_ver"] = req.build_ver
+    final_config_dict["build_num"] = req.build_ver
+    final_config_dict["remote_ip"] = req.host
+    
+    final_config_dict["guest_product_ver"] = guest_product_ver
+    final_config_dict["guest_milestone"] = req.guest_milestone
+    final_config_dict["guest_build_ver"] = req.guest_build_ver
+    final_config_dict["guest_build_num"] = req.guest_build_ver
+    
+    final_config_dict["host_prd_url"] = host_prd_url
+    final_config_dict["guest_prd_url"] = guest_prd_url
+    final_config_dict["auto_yast"] = auto_yast
+
     # 4. Create context mapping for {placeholder} replacement
     context = flatten_dict(final_config_dict)
     context.update({
         "host": req.host,
         "hostname": req.host,
-        "product": req.product,
+        "product_ver": product_ver,
         "milestone": req.milestone,
         "build_ver": req.build_ver,
         "buildVer": req.build_ver,
-        "remote_ip": req.host
+        "build_num": req.build_ver,
+        "remote_ip": req.host,
+        
+        "guest_product_ver": guest_product_ver,
+        "guest_milestone": req.guest_milestone,
+        "guest_build_ver": req.guest_build_ver,
+        "guest_build_num": req.guest_build_ver,
+        
+        "host_prd_url": host_prd_url,
+        "guest_prd_url": guest_prd_url,
+        "auto_yast": auto_yast,
+        "password": final_config_dict.get("VIRTUAL_MACHINE", {}).get("password", "nots3cr3t")
     })
     
     # 5. Recursively resolve placeholders
@@ -488,7 +909,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     print(f"SSH Auth/Conn failure: {err}")
                     await websocket.send_text(json.dumps({
                         "action": "error",
-                        "data": f"SSH connection error: {str(err)}"
+                        "data": f"Timeout connection, please try again later..." if 'timed out' in str(err) else f"SSH connection error: {str(err)}"
                     }))
                     await websocket.close()
                     break

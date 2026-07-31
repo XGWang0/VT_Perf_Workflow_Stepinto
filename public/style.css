@@ -315,7 +315,7 @@ body {
 
 .studio-body {
   display: grid;
-  grid-template-columns: 0.9fr 40px 1.3fr; /* Left steps column narrow, divider, roomy right script editor */
+  grid-template-columns: 1.13fr 40px 1.07fr; /* Left steps column increased by 1/3 (1.13fr), divider, right script editor (1.07fr) */
   gap: 1.5rem;
   align-items: stretch; /* Forces left column and right column to be exactly the SAME height */
   height: auto; /* Allow natural expansion when terminal is unhidden inside right column */
@@ -1137,6 +1137,60 @@ input:focus {
 
 /* Close/Disconnect Button */
 .btn-close {
+  width: 12px;
+  height: 12px;
+  min-width: 12px !important;
+  max-width: 12px !important;
+  min-height: 12px !important;
+  max-height: 12px !important;
+  border-radius: 50% !important;
+  background-color: #ff5f56 !important;
+  border: none !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+  position: relative !important;
+  box-shadow: none !important;
+}
+
+.btn-close:hover {
+  background-color: #ff3b30 !important;
+}
+
+.btn-close .close-icon {
+  width: 8px !important;
+  height: 8px !important;
+  stroke: #4c0002 !important; /* Dark red stroke for contrast inside red macOS dot */
+  stroke-width: 3.5 !important;
+  opacity: 0;
+  transition: opacity 0.15s ease !important;
+}
+
+.btn-close:hover .close-icon {
+  opacity: 1;
+}
+
+.btn-session-disconnected {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-session-disconnected:hover {
+  background-color: var(--warning);
+  color: #000000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.btn-session-connected {
   background-color: rgba(239, 68, 68, 0.12);
   color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.2);
@@ -1147,7 +1201,7 @@ input:focus {
   transition: all 0.2s ease;
 }
 
-.btn-close:hover {
+.btn-session-connected:hover {
   background-color: var(--danger);
   color: white;
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
@@ -1210,6 +1264,7 @@ input:focus {
 .session-info {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 }
 
 /* Status Indicator */
